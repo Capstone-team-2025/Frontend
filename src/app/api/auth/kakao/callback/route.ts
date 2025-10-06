@@ -1,4 +1,5 @@
 // src/app/api/auth/kakao/callback/route.ts
+//GET /api/auth/kakao/callback (카카오 콜백)
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
