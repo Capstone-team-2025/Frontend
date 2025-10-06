@@ -1,7 +1,31 @@
 // src/app/api/auth/kakao/callback/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
+
 export const runtime = "nodejs";
+
+type KakaoTokenResponse = {
+  access_token: string;
+  token_type: string;
+  refresh_token?: string;
+  expires_in: number;
+  scope?: string;
+};
+
+type KakaoMeResponse = {
+  id: number;
+  properties?: {
+    nickname?: string;
+    profile_image?: string;
+  };
+  kakao_account?: {
+    email?: string;
+    profile?: {
+      nickname?: string;
+      profile_image_url?: string;
+    };
+  };
+};
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
@@ -22,7 +46,7 @@ export async function GET(req: NextRequest) {
       tokenForm.append("client_secret", process.env.KAKAO_CLIENT_SECRET);
     }
 
-    const tokenRes = await axios.post(
+    const tokenRes = await axios.post<KakaoTokenResponse>(
       "https://kauth.kakao.com/oauth/token",
       tokenForm,
       {
@@ -34,21 +58,31 @@ export async function GET(req: NextRequest) {
       }
     );
 
-    const accessToken = tokenRes.data.access_token as string;
+    const accessToken = tokenRes.data.access_token;
 
     // 2) 사용자 정보
-    const meRes = await axios.get("https://kapi.kakao.com/v2/user/me", {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      timeout: 10_000,
-      validateStatus: (s) => s >= 200 && s < 300,
-    });
+    const meRes = await axios.get<KakaoMeResponse>(
+      "https://kapi.kakao.com/v2/user/me",
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        timeout: 10_000,
+        validateStatus: (s) => s >= 200 && s < 300,
+      }
+    );
 
     const me = meRes.data;
+    const nickname =
+      me.properties?.nickname ?? me.kakao_account?.profile?.nickname ?? "";
+    const image =
+      me.properties?.profile_image ??
+      me.kakao_account?.profile?.profile_image_url ??
+      "";
+
     const user = {
       id: me.id,
-      nickname: me.properties?.nickname ?? "",
+      nickname,
       email: me.kakao_account?.email ?? "",
-      image: me.properties?.profile_image ?? "",
+      image,
     };
 
     // 3) 응답 생성 + 쿠키 설정
@@ -62,20 +96,33 @@ export async function GET(req: NextRequest) {
     });
 
     return res;
-  } catch (err: any) {
-    if (err.response) {
+  } catch (err: unknown) {
+    // axios 에러 처리
+    if (axios.isAxiosError(err)) {
+      if (err.code === "ECONNABORTED") {
+        return NextResponse.json({ message: "request timeout" }, { status: 504 });
+      }
+
+      const status = err.response?.status ?? 500;
+      const data = (() => {
+        const d = err.response?.data;
+        if (!d) return undefined;
+        if (typeof d === "string") return d;
+        try {
+          return JSON.stringify(d);
+        } catch {
+          return "axios error";
+        }
+      })();
+
       return NextResponse.json(
-        {
-          message: "kakao api error",
-          status: err.response.status,
-          data: err.response.data,
-        },
-        { status: err.response.status }
+        { message: "kakao api error", status, data },
+        { status }
       );
     }
-    if (err.code === "ECONNABORTED") {
-      return NextResponse.json({ message: "request timeout" }, { status: 504 });
-    }
-    return NextResponse.json({ message: "internal error" }, { status: 500 });
+
+    // 비-axios 에러
+    const msg = err instanceof Error ? err.message : "internal error";
+    return NextResponse.json({ message: msg }, { status: 500 });
   }
 }
