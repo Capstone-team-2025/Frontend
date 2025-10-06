@@ -6,11 +6,18 @@ export const metadata: Metadata = {
   description: "Mapnefit App",
 };
 
-export default function RootLayout({ children,}: { children: React.ReactNode;}) 
-{
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="ko">
-      <body className="min-h-screen bg-white">{children}</body>
+    <html lang="ko" className="bg-neutral-100">
+      <body>
+        <div className="mx-auto w-full max-w-[425px] min-h-dvh bg-white shadow-sm">
+          {children}
+        </div>
+      </body>
     </html>
   );
 }

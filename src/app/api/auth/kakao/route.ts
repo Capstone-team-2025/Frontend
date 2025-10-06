@@ -1,3 +1,4 @@
+//GET /api/auth/kakao (카카오로 보내는 시작점)
 import { NextResponse } from "next/server";
 
 export async function GET() {
