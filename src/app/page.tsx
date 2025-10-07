@@ -24,14 +24,14 @@ export default function Login() {
         <div className="px-5 pb-6">
           <a href="/api/auth/kakao" aria-label="카카오로 로그인">
             <Image
-              src="/kakao_login_large_wide.png"
+              src="/images/kakao_login_large_wide.png"
               alt="카카오 로그인"
               width={600} height={90}
               priority
               className="hidden sm:block mx-auto"
             />
             <Image
-              src="/kakao_login_large_wide.png"
+              src="/images/kakao_login_large_wide.png"
               alt="카카오 로그인"
               width={366}
               height={90}

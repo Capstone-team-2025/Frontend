@@ -1,15 +1,13 @@
-// src/app/(auth)/signup/page.tsx (서버)
-import CarrierSelectClient from "./SelectClient";
+// src/app/(auth)/signup/grade/page.tsx (서버)
+import GradeClient from "./GradeClient";
 
-export const metadata = { title: "회원가입페이지" };
-
-export default function SignupPage() {
+export default function GradePage() {
   return (
     <main className="min-h-dvh bg-white">
       <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
         <div className="flex flex-1 items-center justify-center px-6">
           <div className="w-full text-center">
-            <CarrierSelectClient />
+            <GradeClient />
           </div>
         </div>
       </div>
