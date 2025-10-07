@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
     };
 
     // 3) 응답 생성 + 쿠키 설정
-    const res = NextResponse.redirect(new URL("/map", req.url));
+    const res = NextResponse.redirect(new URL("/signup", req.url));
     res.cookies.set("session", JSON.stringify({ provider: "kakao", user }), {
       httpOnly: true,
       sameSite: "lax",
