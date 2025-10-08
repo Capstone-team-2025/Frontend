@@ -1,128 +1,102 @@
-// src/app/api/auth/kakao/callback/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
 
 export const runtime = "nodejs";
 
-type KakaoTokenResponse = {
-  access_token: string;
-  token_type: string;
-  refresh_token?: string;
-  expires_in: number;
-  scope?: string;
-};
+interface BackendAuthSuccessResponse {
+  success: true;
+  token: string;
+  user: {
+    id: number;
+    kakaoId: number;
+    nickname: string;
+    profileImage: string;
+  };
+}
 
-type KakaoMeResponse = {
-  id: number;
-  properties?: {
-    nickname?: string;
-    profile_image?: string;
-  };
-  kakao_account?: {
-    email?: string;
-    profile?: {
-      nickname?: string;
-      profile_image_url?: string;
-    };
-  };
-};
+interface BackendAuthErrorResponse {
+  success: false;
+  message: string;
+  error: string;
+}
+
+type BackendAuthResponse =
+  | BackendAuthSuccessResponse
+  | BackendAuthErrorResponse;
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
-  if (!code) return NextResponse.json({ message: "no code" }, { status: 400 });
+  if (!code) {
+    return NextResponse.json({ message: "no code" }, { status: 400 });
+  }
 
   try {
-    // 1) 코드 → 토큰
-    const origin = new URL(req.url).origin;
-    const redirectUrl = `${origin}/api/auth/kakao/callback`;
+    // redirect_uri 동적 생성
+    const protocol = req.headers.get("x-forwarded-proto") || "http";
+    const host = req.headers.get("host") || "localhost:3000";
+    const redirectUri = `${protocol}://${host}/api/auth/kakao/callback`;
 
-    const tokenForm = new URLSearchParams({
-      grant_type: "authorization_code",
-      client_id: process.env.KAKAO_REST_API_KEY!,
-      redirect_uri: redirectUrl,
-      code,
-    });
-    if (process.env.KAKAO_CLIENT_SECRET) {
-      tokenForm.append("client_secret", process.env.KAKAO_CLIENT_SECRET);
+    // 백엔드로 code와 redirect_uri 전달
+    const backendUrl =
+      process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:9090";
+    const backendRes = await axios.get<BackendAuthResponse>(
+      `${backendUrl}/api/auth/kakao/callback`,
+      {
+        params: { code, redirect_uri: redirectUri },
+        timeout: 10_000,
+        validateStatus: (s) => s >= 200 && s < 300,
+      }
+    );
+
+    const data = backendRes.data;
+
+    // 백엔드 에러 응답 처리
+    if (!data.success) {
+      console.error("[Backend Auth Error]", data.message, data.error);
+      return NextResponse.json(
+        { message: data.message, error: data.error },
+        { status: 500 }
+      );
     }
 
-    const tokenRes = await axios.post<KakaoTokenResponse>(
-      "https://kauth.kakao.com/oauth/token",
-      tokenForm,
-      {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
-        },
-        timeout: 10_000,
-        validateStatus: (s) => s >= 200 && s < 300,
-      }
-    );
-
-    const accessToken = tokenRes.data.access_token;
-
-    // 2) 사용자 정보
-    const meRes = await axios.get<KakaoMeResponse>(
-      "https://kapi.kakao.com/v2/user/me",
-      {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        timeout: 10_000,
-        validateStatus: (s) => s >= 200 && s < 300,
-      }
-    );
-
-    const me = meRes.data;
-    const nickname =
-      me.properties?.nickname ?? me.kakao_account?.profile?.nickname ?? "";
-    const image =
-      me.properties?.profile_image ??
-      me.kakao_account?.profile?.profile_image_url ??
-      "";
-
-    const user = {
-      id: me.id,
-      nickname,
-      email: me.kakao_account?.email ?? "",
-      image,
-    };
-
-    // 3) 응답 생성 + 쿠키 설정
+    const { token } = data;
+    // JWT 토큰만 httpOnly 쿠키에 저장
     const res = NextResponse.redirect(new URL("/signup", req.url));
-    res.cookies.set("session", JSON.stringify({ provider: "kakao", user }), {
+    res.cookies.set("auth_token", token, {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7일
+      maxAge: 60 * 60 * 24, // 24시간
     });
 
     return res;
   } catch (err: unknown) {
-    // axios 에러 처리
     if (axios.isAxiosError(err)) {
       if (err.code === "ECONNABORTED") {
-        return NextResponse.json({ message: "request timeout" }, { status: 504 });
+        return NextResponse.json(
+          { message: "request timeout" },
+          { status: 504 }
+        );
       }
 
       const status = err.response?.status ?? 500;
-      const data = (() => {
-        const d = err.response?.data;
-        if (!d) return undefined;
-        if (typeof d === "string") return d;
-        try {
-          return JSON.stringify(d);
-        } catch {
-          return "axios error";
-        }
-      })();
+      const data = err.response?.data;
+
+      console.error("[Backend Auth Error]", { status, data });
 
       return NextResponse.json(
-        { message: "kakao api error", status, data },
+        {
+          message: "backend auth error",
+          status,
+          data: typeof data === "string" ? data : JSON.stringify(data),
+        },
         { status }
       );
     }
 
-    // 비-axios 에러
     const msg = err instanceof Error ? err.message : "internal error";
+    console.error("[Auth Error]", msg);
     return NextResponse.json({ message: msg }, { status: 500 });
   }
 }
