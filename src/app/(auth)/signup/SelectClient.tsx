@@ -1,4 +1,4 @@
-// src/app/(auth)/signup/CarrierSelectClient.tsx (클라이언트)
+// src/app/(auth)/signup/SelectClient.tsx (클라이언트)
 "use client";
 import { useRouter } from "next/navigation";
 import GradeSelect from "@/components/selectmenu/GradeSelect";
