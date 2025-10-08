@@ -1,6 +1,6 @@
-// src/app/(auth)/signup/grade/GradeClient.tsx (클라)
+// src/app/(auth)/signup/grade/GradeClient.tsx
 "use client";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import GradeSelect from "@/components/selectmenu/GradeSelect";
 
 const OPTIONS: Record<string, string[]> = {
@@ -9,17 +9,20 @@ const OPTIONS: Record<string, string[]> = {
   "LG U+": ["VVIP", "VIP", "다이아몬드"],
 };
 
-export default function GradeClient() {
+export default function GradeClient({ carrier }: { carrier: string }) {
   const router = useRouter();
-  const sp = useSearchParams();
-  const carrier = sp.get("carrier") ?? "";
+
+  const options = OPTIONS[carrier] ?? [];
+
   return (
     <GradeSelect
-      title={`${carrier} 멤버십 등급을 골라주세요.`}
+      title={`${carrier || "통신사"} 멤버십 등급을 골라주세요.`}
       subtitle="정확한 혜택 안내를 위해 멤버십 등급을 선택해주세요."
-      options={OPTIONS[carrier] ?? []}
+      options={options}
       onSubmit={(grade) =>
-        router.push(`/signup/done?carrier=${encodeURIComponent(carrier)}&grade=${encodeURIComponent(grade)}`)
+        router.push(
+          `/signup/done?carrier=${encodeURIComponent(carrier)}&grade=${encodeURIComponent(grade)}`
+        )
       }
     />
   );
