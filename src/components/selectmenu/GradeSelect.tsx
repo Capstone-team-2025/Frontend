@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import Button from "@/components/button/SignUpButton";
+import Button from "@/components/button/SignUpButton"
 
 type Props = {
   title: string;

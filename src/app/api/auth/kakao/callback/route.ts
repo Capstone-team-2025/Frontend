@@ -58,10 +58,15 @@ export async function GET(req: NextRequest) {
         { status: 500 }
       );
     }
-
-    const { token } = data;
+    //닉네임 저장
+    const { token, user } = data;
+    const nickname = user?.nickname ?? "";
+    const redirectTo = new URL("/signup/complete", req.url);
+    if (nickname) {
+      redirectTo.searchParams.set("nickname", nickname);
+    }
+    const res = NextResponse.redirect(redirectTo);
     // JWT 토큰만 httpOnly 쿠키에 저장
-    const res = NextResponse.redirect(new URL("/signup", req.url));
     res.cookies.set("auth_token", token, {
       httpOnly: true,
       sameSite: "lax",

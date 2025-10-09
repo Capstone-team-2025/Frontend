@@ -19,11 +19,7 @@ export default function GradeClient({ carrier }: { carrier: string }) {
       title={`${carrier || "통신사"} 멤버십 등급을 골라주세요.`}
       subtitle="정확한 혜택 안내를 위해 멤버십 등급을 선택해주세요."
       options={options}
-      onSubmit={(grade) =>
-        router.push(
-          `/signup/done?carrier=${encodeURIComponent(carrier)}&grade=${encodeURIComponent(grade)}`
-        )
-      }
+      onSubmit={(grade) => router.push("/signup/complete")}
     />
   );
 }
