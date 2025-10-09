@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import Button from "@/components/button/SignUpButton";
 
+export const dynamic = "force-dynamic";
 export default function SignupCompletePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
