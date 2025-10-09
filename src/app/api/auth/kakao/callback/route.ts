@@ -27,6 +27,7 @@ type BackendAuthResponse =
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
   if (!code) {
+    console.error("[Kakao Callback] No authorization code provided");
     return NextResponse.json({ message: "no code" }, { status: 400 });
   }
 
@@ -37,16 +38,35 @@ export async function GET(req: NextRequest) {
     const redirectUri = `${protocol}://${host}/api/auth/kakao/callback`;
 
     // 백엔드로 code와 redirect_uri 전달
-    const backendUrl =
-      process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:9090";
-    const backendRes = await axios.get<BackendAuthResponse>(
-      `${backendUrl}/api/auth/kakao/callback`,
-      {
-        params: { code, redirect_uri: redirectUri },
-        timeout: 10_000,
-        validateStatus: (s) => s >= 200 && s < 300,
-      }
-    );
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+    // 디버깅 로그 추가
+    console.log("[Kakao Callback] Configuration:", {
+      backendUrl,
+      redirectUri,
+      codeLength: code.length,
+      protocol,
+      host,
+    });
+
+    if (!backendUrl) {
+      console.error("[Kakao Callback] NEXT_PUBLIC_BACKEND_URL is not defined");
+      return NextResponse.json(
+        { message: "Backend URL not configured" },
+        { status: 500 }
+      );
+    }
+
+    const fullUrl = `${backendUrl}/api/auth/kakao/callback`;
+    console.log("[Kakao Callback] Calling backend:", fullUrl);
+
+    const backendRes = await axios.get<BackendAuthResponse>(fullUrl, {
+      params: { code, redirect_uri: redirectUri },
+      timeout: 10_000,
+      validateStatus: (s) => s >= 200 && s < 300,
+    });
+
+    console.log("[Kakao Callback] Backend response status:", backendRes.status);
 
     const data = backendRes.data;
 
@@ -61,7 +81,7 @@ export async function GET(req: NextRequest) {
     //닉네임 저장
     const { token, user } = data;
     const nickname = user?.nickname ?? "";
-    const redirectTo = new URL("/signup/complete", req.url);
+    const redirectTo = new URL("/signup", req.url);
     if (nickname) {
       redirectTo.searchParams.set("nickname", nickname);
     }
@@ -79,6 +99,7 @@ export async function GET(req: NextRequest) {
   } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
       if (err.code === "ECONNABORTED") {
+        console.error("[Kakao Callback] Request timeout");
         return NextResponse.json(
           { message: "request timeout" },
           { status: 504 }
@@ -88,7 +109,13 @@ export async function GET(req: NextRequest) {
       const status = err.response?.status ?? 500;
       const data = err.response?.data;
 
-      console.error("[Backend Auth Error]", { status, data });
+      console.error("[Kakao Callback] Backend error:", {
+        status,
+        data,
+        url: err.config?.url,
+        method: err.config?.method,
+        params: err.config?.params,
+      });
 
       return NextResponse.json(
         {
@@ -101,7 +128,7 @@ export async function GET(req: NextRequest) {
     }
 
     const msg = err instanceof Error ? err.message : "internal error";
-    console.error("[Auth Error]", msg);
+    console.error("[Kakao Callback] Unexpected error:", msg, err);
     return NextResponse.json({ message: msg }, { status: 500 });
   }
 }
