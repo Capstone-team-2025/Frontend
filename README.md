@@ -1,7 +1,7 @@
 # Mapnefit
 
 <div align="center">
-  <img src="public/icon.png" width="200" height="auto" />
+  <img src="public/images/icon.png" width="200" height="auto" />
   <br>
 
 <b>mapnefit</b>
@@ -68,7 +68,7 @@ npm run dev
 <img src="https://img.shields.io/badge/React_Query-FF4154?style=flat&logo=reactquery&logoColor=white">
 <img src="https://img.shields.io/badge/Zustand-000000?style=flat&logo=react&logoColor=white">
 <img src="https://img.shields.io/badge/Axios-5A29E4?style=flat&logo=axios&logoColor=white">
-<img src="https://img.shields.io/badge/Naver_Map_API-03C75A?style=flat&logo=naver&logoColor=white">
+<img src="https://img.shields.io/badge/Kakao_Map_API-FFCD00?style=flat&logo=kakaotalk&logoColor=000000">
 <img src="https://img.shields.io/badge/Kakao_Login-FFCD00?style=flat&logo=kakaotalk&logoColor=black">
 <img src="https://img.shields.io/badge/Vercel-000000?style=flat&logo=vercel&logoColor=white">
 </div>
