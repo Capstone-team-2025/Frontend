@@ -1,5 +1,5 @@
 //(auth) 그룹 공통 레이아웃
-export default function AuthLayout({
+export default function MainLayout({
   children,
 }: {
   children: React.ReactNode;
