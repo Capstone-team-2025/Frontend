@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import axios from "axios";
 import Button from "@/components/button/SignUpButton";
 
 export default function CompleteClient() {
@@ -13,6 +14,7 @@ export default function CompleteClient() {
   const level = searchParams.get("level") || "";
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
   const [error, setError] = useState<string>("");
 
   useEffect(() => {
@@ -23,28 +25,23 @@ export default function CompleteClient() {
         return;
       }
 
-      if (isSubmitting) return;
+      if (isSubmitting || isCompleted) return;
 
       setIsSubmitting(true);
       try {
-        const response = await fetch("/api/auth/signup/complete", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            carrier,
-            level,
-          }),
+        const response = await axios.post("/api/auth/signup/complete", {
+          carrier,
+          level,
         });
 
-        const data = await response.json();
+        const data = response.data;
 
-        if (!response.ok || !data.success) {
+        if (!data.success) {
           setError(data.message || "회원가입 완료 처리 중 오류가 발생했습니다");
           console.error("[Signup Complete Client] Error:", data);
         } else {
           console.log("[Signup Complete Client] Success:", data);
+          setIsCompleted(true);
         }
       } catch (err) {
         console.error("[Signup Complete Client] Fetch error:", err);
@@ -55,18 +52,14 @@ export default function CompleteClient() {
     };
 
     submitSignup();
-  }, [carrier, level, isSubmitting]);
+  }, [carrier, level]);
 
   return (
     <>
       <h1 className="text-3xl font-extrabold tracking-tight ">
         {nickname ? `${nickname}님, 가입을 축하합니다` : "가입을 축하합니다"}
       </h1>
-      {error && (
-        <div className="mt-4 text-red-500 text-sm">
-          {error}
-        </div>
-      )}
+      {error && <div className="mt-4 text-red-500 text-sm">{error}</div>}
       <motion.div
         initial={{ scale: 0, opacity: 0 }} // 작게 시작
         animate={{ scale: 1.2, opacity: 1 }} // 커지며 보이기
@@ -87,8 +80,7 @@ export default function CompleteClient() {
         size="lg"
         fullWidth
         onClick={() => router.push("/map")}
-        disabled={isSubmitting}
-      >
+        disabled={isSubmitting}>
         {isSubmitting ? "처리 중..." : "시작하기"}
       </Button>
     </>
