@@ -15,7 +15,7 @@ export default function TabBar() {
   return (
     <div className="fixed inset-x-0 bottom-0 z-50 pb-[env(safe-area-inset-bottom,0px)] pointer-events-none">
       <nav
-        className="mx-auto w-full max-w-[430px] bg-white rounded-t-[25px] shadow-[0_-6px_18px_rgba(0,0,0,0.08)] pointer-events-auto"
+        className="mx-auto w-full max-w-[420px] bg-white rounded-t-[25px] shadow-[0_-6px_18px_rgba(0,0,0,0.08)] pointer-events-auto"
         role="navigation"
         aria-label="앱 하단 탭"
       >
