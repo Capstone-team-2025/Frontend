@@ -35,7 +35,7 @@ export default function MyPageClient({ user }: { user: User }) {
     else item.action?.();
   };
   return (
-    <main className="p-5">
+    <main>
       <section className="flex items-center gap-3 mb-40">
         <div className="h-13 w-13 flex items-center justify-center rounded-full bg-[#FE8E8E] ">
           {user.profile}
