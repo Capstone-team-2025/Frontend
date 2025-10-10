@@ -4,6 +4,10 @@ import Script from "next/script";
 import { useEffect, useState } from "react";
 import { Map, MapMarker } from "react-kakao-maps-sdk";
 
+type KakaoMaps = { load: (cb: () => void) => void };
+type KakaoNS = { maps?: KakaoMaps };
+type KakaoWindow = Window & { kakao?: KakaoNS };
+
 export default function KakaoMap({
   center = { lat: 37.5662952, lng: 126.9779451 }, // 임시로 마커 위치 지정
   height = "100%",
@@ -15,7 +19,8 @@ export default function KakaoMap({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const ok = (window as any).kakao && (window as any).kakao.maps;
+    const w = window as KakaoWindow;
+    const ok = !!(w.kakao && w.kakao.maps);
     if (ok) setReady(true);
   }, []);
 
@@ -25,7 +30,10 @@ export default function KakaoMap({
         <Script
           src={`https://dapi.kakao.com/v2/maps/sdk.js?autoload=false&appkey=${process.env.NEXT_PUBLIC_KAKAO_APP_KEY}&libraries=services,clusterer`}
           strategy="afterInteractive"
-          onLoad={() => (window as any).kakao.maps.load(() => setReady(true))}
+          onLoad={() => {
+            const w = window as KakaoWindow;
+            w.kakao?.maps?.load(() => setReady(true));
+          }}
         />
       )}
 
