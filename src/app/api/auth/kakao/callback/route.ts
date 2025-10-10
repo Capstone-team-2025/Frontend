@@ -38,7 +38,8 @@ export async function GET(req: NextRequest) {
     const redirectUri = `${protocol}://${host}/api/auth/kakao/callback`;
 
     // 백엔드로 code와 redirect_uri 전달
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+    // const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL_DEV; // 개발용 백엔드 URL 사용
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL; // 배포용 백엔드 URL 사용
 
     // 디버깅 로그 추가
     console.log("[Kakao Callback] Configuration:", {
