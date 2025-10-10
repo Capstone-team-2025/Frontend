@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Image from "next/image";
 import ConfirmModal from "@/components/modal/ConfirmModal";
 
 type User = { nickname: string; grade: string; profile: string };
@@ -57,7 +58,13 @@ export default function MyPageClient({ user }: { user: User }) {
             aria-label={item.label}
           >
             <span className="text-[15px] font-semibold">{item.label}</span>
-            <span className="text-400">? </span>
+            <Image
+              src="/images/ForwardBTN-gray.png"
+              alt="다음버튼"
+              width={20}
+              height={20}
+              className="shrink-0"
+            />
           </button>
         ))}
       </nav>
