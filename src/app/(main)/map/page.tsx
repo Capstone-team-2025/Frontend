@@ -1,5 +1,10 @@
 export const metadata = { title: "지도페이지" };
+import KakaoMap from "@/components/map/KakaoMap";
 
 export default function MapPage() {
-  return <div>지도페이지 준비중</div>; // 임시 UI
+  return (
+    <main className="h-[100dvh]">
+      <KakaoMap height="100%" />
+    </main>
+  );
 }
