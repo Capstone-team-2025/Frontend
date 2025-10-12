@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Image from "next/image";
 import ConfirmModal from "@/components/modal/ConfirmModal";
+import Link from "next/link";
 
 type User = { nickname: string; grade: string; profile: string };
 type Item = { label: string; href?: string; action?: () => void };
@@ -36,19 +37,30 @@ export default function MyPageClient({ user }: { user: User }) {
     else item.action?.();
   };
   return (
-    <main>
-      <section className="flex items-center gap-3 mb-40">
-        <div className="h-13 w-13 flex items-center justify-center rounded-full bg-[#FE8E8E] ">
-          {user.profile}
-        </div>
-        <div className="flex flex-col">
-          <div className="font-bold">{user.nickname}</div>
-          <span className="mt-1 inline-block rounded-full px-3 py-1 text-[13px] font-bold bg-[#D71826] text-white">
-            {user.grade}
-          </span>
-        </div>
-      </section>
-
+    <main className="p-5">
+      <Link
+        href="/mypage/editprofile"
+        className="flex items-center justify-between mb-40 cursor-pointer"
+      >
+        <section className="flex items-center gap-3">
+          <div className="h-13 w-13 flex items-center justify-center rounded-full bg-[#FE8E8E] ">
+            {user.profile}
+          </div>
+          <div className="flex flex-col">
+            <div className="font-bold">{user.nickname}</div>
+            <span className="mt-1 inline-block rounded-full px-3 py-1 text-[13px] font-bold bg-[#D71826] text-white">
+              {user.grade}
+            </span>
+          </div>
+        </section>
+        <Image
+          src="/images/ForwardBTN-gray.png"
+          alt="프로필 변경 이동"
+          width={20}
+          height={20}
+          className="shrink-0"
+        />
+      </Link>
       <nav className="flex flex-col">
         {items.map((item) => (
           <button
