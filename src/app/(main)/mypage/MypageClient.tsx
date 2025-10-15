@@ -5,18 +5,20 @@ import { useState } from "react";
 import Image from "next/image";
 import ConfirmModal from "@/components/modal/ConfirmModal";
 import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
 
 type User = { nickname: string; grade: string; profile: string };
 type Item = { label: string; href?: string; action?: () => void };
 
 export default function MyPageClient({ user }: { user: User }) {
   const router = useRouter();
+  const { logout } = useAuth();
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [quitOpen, setQuitOpen] = useState(false);
 
   const handleLogout = async () => {
     setLogoutOpen(false);
-    router.replace("/");
+    await logout();
   };
   const handleQuit = async () => {
     setQuitOpen(false);
