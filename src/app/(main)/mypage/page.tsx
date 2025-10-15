@@ -2,8 +2,6 @@
 import { getUserData } from "@/app/api/getUserData";
 import MyPageClient from "./MypageClient";
 import Header from "@/components/common/Header";
-import axios from "axios";
-import { redirect } from "next/navigation";
 export const metadata = { title: "마이페이지" };
 
 export default async function MyPagePage() {
@@ -20,3 +18,4 @@ export default async function MyPagePage() {
       <Header title="마이 프로필" /> <MyPageClient user={user} />
     </main>
   );
+}
