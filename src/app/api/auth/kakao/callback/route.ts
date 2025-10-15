@@ -11,6 +11,10 @@ interface BackendAuthSuccessResponse {
     kakaoId: number;
     nickname: string;
     profileImage: string;
+    carrier?: string | null;  
+    level?: string | null; 
+    cardNumber?: string | null;
+    alertEnabled?: boolean;
   };
 }
 
@@ -81,11 +85,16 @@ export async function GET(req: NextRequest) {
     }
     //닉네임 저장
     const { token, user } = data;
-    const nickname = user?.nickname ?? "";
-    const redirectTo = new URL("/signup", req.url);
-    if (nickname) {
-      redirectTo.searchParams.set("nickname", nickname);
+
+    const isCompleted = Boolean(user?.carrier && user?.level);
+    const redirectTo = new URL(isCompleted ? "/map" : "/signup", req.url);
+    if (!isCompleted && user) {
+      if (user.nickname) redirectTo.searchParams.set("nickname", user.nickname);
+      if (user.profileImage)
+        redirectTo.searchParams.set("profile", user.profileImage);
+      if (user.level) redirectTo.searchParams.set("level", user.level);
     }
+
     const res = NextResponse.redirect(redirectTo);
     // JWT 토큰만 httpOnly 쿠키에 저장
     res.cookies.set("auth_token", token, {
