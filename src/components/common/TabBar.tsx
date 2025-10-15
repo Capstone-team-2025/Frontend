@@ -1,6 +1,6 @@
 "use client";
 import { useRouter, usePathname } from "next/navigation";
-
+import Image from "next/image";
 export default function TabBar() {
   const router = useRouter();
   const pathname = usePathname();
@@ -13,13 +13,13 @@ export default function TabBar() {
   ];
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 pb-[env(safe-area-inset-bottom,0px)] pointer-events-none">
+    <div className="fixed inset-x-0 bottom-0 z-50 pb-[env(safe-area-inset-bottom,0px)] ">
       <nav
-        className="mx-auto w-full max-w-[420px] bg-white rounded-t-[25px] shadow-[0_-6px_18px_rgba(0,0,0,0.08)] pointer-events-auto"
+        className="mx-auto w-full max-w-[425px] bg-white "
         role="navigation"
         aria-label="앱 하단 탭"
       >
-        <div className="flex justify-around py-3 px-4">
+        <div className="flex justify-between py-3 px-4">
           {menus.map((menu) => {
             const isActive = pathname.startsWith(menu.path);
             const base = `/images/${menu.icon}`;
@@ -30,12 +30,12 @@ export default function TabBar() {
                 onClick={() => router.push(menu.path)}
                 className="flex flex-col items-center text-xs"
               >
-                <img
+                <Image
                   src={iconSrc}
                   alt={menu.name}
-                  className="w-9 h-9 mb-1"
-                  width={36}
-                  height={36}
+                  className="mb-1"
+                  width={32}
+                  height={32}
                 />
                 <span className="text-black">{menu.name}</span>
               </button>

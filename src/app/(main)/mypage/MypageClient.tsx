@@ -9,7 +9,7 @@ import Link from "next/link";
 type User = { nickname: string; grade: string; profile: string };
 type Item = { label: string; href?: string; action?: () => void };
 
-export default function MyPageClient({ user }: { user: User }) {
+export default function MypageClient({ user }: { user: User }) {
   const router = useRouter();
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [quitOpen, setQuitOpen] = useState(false);
@@ -43,9 +43,17 @@ export default function MyPageClient({ user }: { user: User }) {
         className="flex items-center justify-between mb-40 cursor-pointer"
       >
         <section className="flex items-center gap-3">
-          <div className="h-13 w-13 flex items-center justify-center rounded-full bg-[#FE8E8E] ">
-            {user.profile}
+          <div className="relative size-[56px] flex items-center justify-center rounded-full bg-[#FE8E8E] overflow-hidden">
+            <Image
+              src={user.profile || "/images/default-avatar.png"} // fallback
+              alt="프로필 이미지"
+              fill
+              className="object-cover"
+              sizes="56px"
+              priority
+            />
           </div>
+
           <div className="flex flex-col">
             <div className="font-bold">{user.nickname}</div>
             <span className="mt-1 inline-block rounded-full px-3 py-1 text-[13px] font-bold bg-[#D71826] text-white">
@@ -53,6 +61,7 @@ export default function MyPageClient({ user }: { user: User }) {
             </span>
           </div>
         </section>
+
         <Image
           src="/images/ForwardBTN-gray.png"
           alt="프로필 변경 이동"

@@ -9,7 +9,7 @@ export default function Header({ title }: { title: string }) {
     bgColor = "bg-[#FB4E6F]"; 
   } 
   return (
-    <header className={`my-3 sticky px-4 py-3 ${bgColor}`}>
+    <header className={`sticky px-3 py-5 ${bgColor}`}>
       <h1 className="flex justify-center font-bold text-xl ">{title}</h1>
     </header>
   );
