@@ -2,6 +2,7 @@ import { getUserData } from "@/app/api/getUserData";
 import MyPageClient from "./MypageClient";
 import Header from "@/components/common/Header";
 export const metadata = { title: "마이페이지" };
+export const revalidate = 0;   
 
 export default async function SignupPage() {
   const data = await getUserData();
