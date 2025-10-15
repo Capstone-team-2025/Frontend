@@ -1,9 +1,12 @@
+
 import { getUserData } from "@/app/api/getUserData";
 import MyPageClient from "./MypageClient";
 import Header from "@/components/common/Header";
+import axios from "axios";
+import { redirect } from "next/navigation";
 export const metadata = { title: "마이페이지" };
 
-export default async function SignupPage() {
+export default async function MyPagePage() {
   const data = await getUserData();
 
   const user = {
@@ -17,4 +20,3 @@ export default async function SignupPage() {
       <Header title="마이 프로필" /> <MyPageClient user={user} />
     </main>
   );
-}
