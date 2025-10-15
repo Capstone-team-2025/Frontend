@@ -2,7 +2,9 @@
 
 import Script from "next/script";
 import { useEffect, useState } from "react";
-import { Map, MapMarker } from "react-kakao-maps-sdk";
+import { Map } from "react-kakao-maps-sdk";
+import UserLocationRadius from "./UserLocationRadius";
+import MapOverlays from "./overlays/MapOverlays";
 
 type KakaoMaps = { load: (cb: () => void) => void };
 type KakaoNS = { maps?: KakaoMaps };
@@ -25,7 +27,7 @@ export default function KakaoMap({
   }, []);
 
   return (
-    <div style={{ width: "100%", height }}>
+    <div className="relative" style={{ width: "100%", height }}>
       {!ready && (
         <Script
           src={`https://dapi.kakao.com/v2/maps/sdk.js?autoload=false&appkey=${process.env.NEXT_PUBLIC_KAKAO_APP_KEY}&libraries=services,clusterer`}
@@ -38,14 +40,32 @@ export default function KakaoMap({
       )}
 
       {ready ? (
-        <Map
-          center={center}
-          level={4}
-          style={{ width: "100%", height: "100%" }}
-          onCreate={() => console.log("[MAP] created")}
-        >
-          <MapMarker position={center} />
-        </Map>
+        <>
+          <Map
+            center={center}
+            level={4}
+            style={{ width: "100%", height: "100%" }}
+            onCreate={() => console.log("[MAP] created")}
+          >
+            <UserLocationRadius
+              center={center}
+              radiusMeters={300}
+              markerSize={{ width: 50, height: 59 }}
+              markerTailPad={9}
+              circleStyle={{
+                strokeWeight: 2,
+                strokeColor: "#ff5a5f",
+                strokeOpacity: 0.9,
+                fillColor: "#ff5a5f",
+                fillOpacity: 0.18,
+              }}
+            />
+          </Map>
+          <MapOverlays
+            onSearch={(q) => console.log("search:", q)}
+            onCategoryChange={(ids) => console.log("categories:", ids)}
+          />
+        </>
       ) : (
         <div>지도를 불러오는 중...</div>
       )}

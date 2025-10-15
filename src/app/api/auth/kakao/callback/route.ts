@@ -6,15 +6,14 @@ export const runtime = "nodejs";
 interface BackendAuthSuccessResponse {
   success: true;
   token: string;
+  isNewUser?: boolean; // 신규 사용자 여부
   user: {
     id: number;
     kakaoId: number;
     nickname: string;
     profileImage: string;
-    carrier?: string | null;  
-    level?: string | null; 
-    cardNumber?: string | null;
-    alertEnabled?: boolean;
+    carrier?: string; // 통신사 정보가 있으면 기존 사용자
+    level?: string;
   };
 }
 
@@ -83,16 +82,22 @@ export async function GET(req: NextRequest) {
         { status: 500 }
       );
     }
-    //닉네임 저장
-    const { token, user } = data;
+    const { token, user, isNewUser } = data;
 
-    const isCompleted = Boolean(user?.carrier && user?.level);
-    const redirectTo = new URL(isCompleted ? "/map" : "/signup", req.url);
-    if (!isCompleted && user) {
-      if (user.nickname) redirectTo.searchParams.set("nickname", user.nickname);
-      if (user.profileImage)
-        redirectTo.searchParams.set("profile", user.profileImage);
-      if (user.level) redirectTo.searchParams.set("level", user.level);
+    // 신규 사용자 여부 판단 (isNewUser 필드 또는 carrier 정보 유무로 판단)
+    const shouldSignup = isNewUser ?? !user?.carrier;
+
+    let redirectTo: URL;
+    if (shouldSignup) {
+      // 신규 사용자 → 회원가입 페이지로
+      redirectTo = new URL("/signup", req.url);
+      const nickname = user?.nickname ?? "";
+      if (nickname) {
+        redirectTo.searchParams.set("nickname", nickname);
+      }
+    } else {
+      // 기존 사용자 → 메인 페이지로
+      redirectTo = new URL("/map", req.url);
     }
 
     const res = NextResponse.redirect(redirectTo);
