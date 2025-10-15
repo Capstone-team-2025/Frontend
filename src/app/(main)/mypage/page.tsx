@@ -10,6 +10,7 @@ export default async function SignupPage() {
     nickname: data.nickname,
     grade: data.levelDisplayName,
     profile: data.profileImage,
+    carrier: data.carrier,
   };
 
   return (

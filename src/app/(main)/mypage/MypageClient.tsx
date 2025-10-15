@@ -7,7 +7,8 @@ import ConfirmModal from "@/components/modal/ConfirmModal";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 
-type User = { nickname: string; grade: string; profile: string };
+type Carrier = "SKT" | "KT" | "LGU+";
+type User = { nickname: string; grade: string; profile: string; carrier: Carrier  };
 type Item = { label: string; href?: string; action?: () => void };
 
 export default function MypageClient({ user }: { user: User }) {
@@ -38,6 +39,33 @@ export default function MypageClient({ user }: { user: User }) {
     if (item.href) router.push(item.href);
     else item.action?.();
   };
+
+  const gradeColors: Record<string, Record<string, string>> = {
+    SKT: {
+      VIP: "bg-[#EE3356] text-white", 
+      GOLD: "bg-[#FFBB04] text-white",
+      SILVER: "bg-[#71CBD3] text-white",
+    },
+    KT: {
+      VVIP: "bg-[#D71826] text-white", 
+      VIP: "bg-[#252525] text-white", 
+      GOLD: "bg-[#8F6133] text-white",
+      SILVER: "bg-[#7C7C7C] text-white",
+      WHITE: "bg-[#ffffff]  text-gray-800",
+      일반: "bg-[#ffffff]  text-gray-800",
+    },
+    LGU: {
+      VVIP: "bg-[#E5007E] text-white",
+      VIP: "bg-[#EE5CAC] text-white",
+      다이아몬드: "bg-[#7D49B1] text-white",
+    },
+  };
+const carrierKey =
+    (user.carrier?.toUpperCase().replace("+", "") as "SKT" | "KT" | "LGU") ||
+    "KT";
+
+  const badgeClass =
+    gradeColors[carrierKey]?.[user.grade] || "bg-gray-400 text-white";
   return (
     <main className="p-5">
       <Link
@@ -56,9 +84,9 @@ export default function MypageClient({ user }: { user: User }) {
             />
           </div>
 
-          <div className="flex flex-col">
+           <div className="flex flex-col">
             <div className="font-bold">{user.nickname}</div>
-            <span className="mt-1 inline-block rounded-full px-3 py-1 text-[13px] font-bold bg-[#D71826] text-white">
+            <span className={`mt-1 inline-block rounded-full px-3 py-1 text-[13px] font-bold ${badgeClass}`}>
               {user.grade}
             </span>
           </div>

@@ -19,7 +19,7 @@ export default function TabBar() {
         role="navigation"
         aria-label="앱 하단 탭"
       >
-        <div className="flex justify-between py-3 px-4">
+        <div className="flex justify-between py-2 px-6">
           {menus.map((menu) => {
             const isActive = pathname.startsWith(menu.path);
             const base = `/images/${menu.icon}`;
