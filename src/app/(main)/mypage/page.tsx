@@ -1,4 +1,3 @@
-
 import { getUserData } from "@/app/api/getUserData";
 import MyPageClient from "./MypageClient";
 import Header from "@/components/common/Header";
@@ -11,6 +10,7 @@ export default async function MyPagePage() {
     nickname: data.nickname,
     grade: data.levelDisplayName,
     profile: data.profileImage,
+    carrier: data.carrier,
   };
 
   return (
