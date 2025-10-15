@@ -31,7 +31,7 @@ const Button = forwardRef<HTMLButtonElement, Props>(
       disabled={loading || rest.disabled}
       {...rest}
     >
-      {loading ? "…" : children}
+      {loading ? children : children}
     </button>
   )
 );

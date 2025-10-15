@@ -20,12 +20,12 @@ export default function Header({ title }: { title: string }) {
   const textColor = isPink ? "text-white" : "text-gray-700";
   return (
     <header
-      className={`sticky top-0 z-50 flex items-center justify-center px-3 py-5 ${bgColor}`}
+      className={`sticky top-0 z-50 flex items-center px-4 py-4 ${bgColor}`}
     >
       {showBackButton && (
         <button
           onClick={() => router.back()}
-          className="absolute left-4 flex items-center justify-center"
+          className="flex items-center justify-center mr-2"
           aria-label="뒤로가기"
         >
           <Image
@@ -37,7 +37,13 @@ export default function Header({ title }: { title: string }) {
           />
         </button>
       )}
-      <h1 className={`font-bold text-xl text-center ${textColor}`}>{title}</h1>
+      <h1
+        className={`font-semibold text-m ${textColor}${
+          showBackButton ? "" : "ml-1"
+        }`}
+      >
+        {title}
+      </h1>
     </header>
   );
 }
