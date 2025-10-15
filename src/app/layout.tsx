@@ -1,5 +1,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 export const metadata: Metadata = {
   title: "MAPNEFIT",
@@ -14,9 +15,11 @@ export default function RootLayout({
   return (
     <html lang="ko" className="bg-neutral-100">
       <body>
-        <div className="mx-auto w-full max-w-[425px] min-h-dvh bg-white shadow-sm">
-          {children}
-        </div>
+        <AuthProvider>
+          <div className="mx-auto w-full max-w-[425px] min-h-dvh bg-white shadow-sm">
+            {children}
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );
