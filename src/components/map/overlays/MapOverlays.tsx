@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import SearchInput from "./SearchInput";
 import CategoryChips, { Chip } from "./CategoryChips";
+import SearchLauncher from "./SearchLauncher";
 
 const CATEGORIES: Chip[] = [
   { id: "food",    label: "식음료",   iconSrc: "/images/category_icon/dining-room.png" },
@@ -15,10 +15,8 @@ const CATEGORIES: Chip[] = [
 ];
 
 export default function MapOverlays({
-  onSearch,
   onCategoryChange,
 }: {
-  onSearch: (q: string) => void;
   onCategoryChange: (ids: string[]) => void;
 }) {
   const [selected, setSelected] = useState<string[]>(["food"]);
@@ -26,12 +24,7 @@ export default function MapOverlays({
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 z-[1000] p-3 space-y-2">
       <div className="pointer-events-auto">
-        <SearchInput
-          onSearch={onSearch}
-          onChangeDebounced={(q) => {/* prefetch */ }}
-          iconSrc="/images/Search.png"
-          iconSize={40}
-        />
+        <SearchLauncher />
       </div>
 
       <div className="pointer-events-auto">
