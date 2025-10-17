@@ -16,6 +16,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   refetch: () => Promise<void>;
 }
 
@@ -50,6 +51,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const deleteAccount = async () => {
+    try {
+      await axios.delete("/api/auth/kakao/quit");
+      setUser(null);
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Account deletion failed:", error);
+      throw error;
+    }
+  };
+
   const refetch = async () => {
     setLoading(true);
     await fetchUser();
@@ -60,7 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout, refetch }}>
+    <AuthContext.Provider value={{ user, loading, logout, deleteAccount, refetch }}>
       {children}
     </AuthContext.Provider>
   );

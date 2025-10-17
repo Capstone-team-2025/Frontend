@@ -18,7 +18,7 @@ type Item = { label: string; href?: string; action?: () => void };
 
 export default function MypageClient({ user }: { user: User }) {
   const router = useRouter();
-  const { logout } = useAuth();
+  const { logout, deleteAccount } = useAuth();
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [quitOpen, setQuitOpen] = useState(false);
 
@@ -28,7 +28,12 @@ export default function MypageClient({ user }: { user: User }) {
   };
   const handleQuit = async () => {
     setQuitOpen(false);
-    router.replace("/"); //탈퇴 우선 로그아웃이랑 같게 처리
+    try {
+      await deleteAccount();
+    } catch (error) {
+      console.error("Failed to delete account:", error);
+      alert("회원탈퇴에 실패했습니다. 재로그인 후 시도해주세요.");
+    }
   };
   const items: Item[] = [
     { label: "통신사/등급 재설정", href: "/mypage/setmembership" },
@@ -75,8 +80,7 @@ export default function MypageClient({ user }: { user: User }) {
     <main className="p-5">
       <Link
         href="/mypage/editprofile"
-        className="flex items-center justify-between mb-10 cursor-pointer"
-      >
+        className="flex items-center justify-between mb-10 cursor-pointer">
         <section className="flex items-center gap-3">
           <div className="relative size-[56px] flex items-center justify-center rounded-full bg-[#FE8E8E] overflow-hidden">
             <Image
@@ -92,8 +96,7 @@ export default function MypageClient({ user }: { user: User }) {
           <div className="flex flex-col">
             <div className="font-bold">{user.nickname}</div>
             <span
-              className={`mt-1 inline-block rounded-full px-3 py-1 text-[13px] font-bold ${badgeClass}`}
-            >
+              className={`mt-1 inline-block rounded-full px-3 py-1 text-[13px] font-bold ${badgeClass}`}>
               {user.grade}
             </span>
           </div>
@@ -113,8 +116,7 @@ export default function MypageClient({ user }: { user: User }) {
             key={item.label}
             onClick={() => onClickItem(item)}
             className="flex w-full items-center justify-between py-4 text-left"
-            aria-label={item.label}
-          >
+            aria-label={item.label}>
             <span className="text-[15px] font-semibold">{item.label}</span>
             <Image
               src="/images/ForwardBTN-gray.png"
@@ -129,8 +131,7 @@ export default function MypageClient({ user }: { user: User }) {
 
       <button
         className="mt-15  border-b text-xs text-neutral-400"
-        onClick={() => setQuitOpen(true)}
-      >
+        onClick={() => setQuitOpen(true)}>
         회원탈퇴
       </button>
       <ConfirmModal
