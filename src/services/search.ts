@@ -11,19 +11,20 @@ export type Store = {
 
 export type Suggestion = string;
 
+export type AutoCompleteResponse = {
+  keyword: string;
+  stores: Store[];
+  totalCount: number;
+  category?: string;
+  matchedCategories?: string[];
+  matchedDiv2Categories?: string[];
+  limit?: number;
+};
+
 export const FIRST_CATEGORIES = [
   "식음료", "쇼핑/소매", "문화/엔터테인먼트", "모빌리티", "라이프", "여행",
 ] as const;
 export const FIRST_SET = new Set<string>(FIRST_CATEGORIES);
-
-// 1차 별칭: 정확 매칭만 하려면 비워도 됨
-export const FIRST_ALIAS: Record<string, string> = {
-  "쇼핑": "쇼핑/소매",
-  "소매": "쇼핑/소매",
-  "문화": "문화/엔터테인먼트",
-  "여가": "문화/엔터테인먼트",
-  "엔터테인먼트": "문화/엔터테인먼트",
-};
 
 export const SECOND_CATEGORIES = [
   // 식음료
@@ -43,38 +44,27 @@ export const SECOND_CATEGORIES = [
 ] as const;
 export const SECOND_SET = new Set<string>(SECOND_CATEGORIES);
 
-type CategoryResolution =
-  | { kind: "first"; value: string }
-  | { kind: "second"; value: string }
-  | { kind: "none" };
-
-function resolveCategory(query: string): CategoryResolution {
-  const q = query.trim();
-  if (!q) return { kind: "none" };
-  if (FIRST_SET.has(q)) return { kind: "first", value: q };
-  if (SECOND_SET.has(q)) return { kind: "second", value: q };
-  return { kind: "none" };
-}
-
 // 공통 요청
 async function getJson<T>(path: string, params: Record<string, string | number> = {}) {
-  const url = new URL(toUrl(path));
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, String(v)));
-
-  const res = await fetch(url.toString(), {
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    const raw = await res.text().catch(() => "");
-    console.error(`[API ${path}] ${res.status}`, raw);
-    throw new Error(`HTTP ${res.status}`);
+  try {
+    const url = new URL(toUrl(path));
+    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, String(v)));
+    const res = await fetch(url.toString(), { cache: "no-store", mode: "cors" });
+    if (!res.ok) {
+      const raw = await res.text().catch(() => "");
+      console.error(`[API ${path}] ${res.status} ${res.statusText}`, raw);
+      throw new Error(`HTTP ${res.status}`);
+    }
+    return (await res.json()) as T;
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error(`[API ${path}] network error`, msg);
+    throw e;
   }
-  return (await res.json()) as T;
 }
 
 // 프록시 경유 공통 요청 (프론트 쿠키 auth_token → 백엔드 Authorization 헤더로 전달)
-async function getJsonViaProxy<T>(path: string, params: Record<string, string | number> = {}) {
+export async function getJsonViaProxy<T>(path: string, params: Record<string, string | number> = {}) {
   const qs = new URLSearchParams({ path, ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])) });
   const res = await fetch(`/api/proxy?${qs.toString()}`, { cache: "no-store" });
   if (!res.ok) {
@@ -85,7 +75,7 @@ async function getJsonViaProxy<T>(path: string, params: Record<string, string | 
   return (await res.json()) as T;
 }
 
-
+// ------------------------------- 공개 검색 API들 -------------------------------
 // 상점명 자동완성(간단) – 검색창에서 상점명 일부가 그대로 일치하는 경우 자동완성에 사용
 export async function suggestStoreNames(q: string, limit = 5): Promise<Suggestion[]> {
   if (!q.trim()) return [];
@@ -121,21 +111,45 @@ export async function autocompleteByConsonant(q: string, limit = 10): Promise<St
 // 1차 카테고리 검색
 export async function searchByCategory(category: string, limit = 10): Promise<Store[]> {
   if (!category.trim()) return [];
-  const res = await getJsonViaProxy<Store[] | { stores: Store[]; totalCount?: number }>(
+  const data = await getJson<{ stores: Store[]; totalCount?: number }>(
     "/api/stores/category",
     { category, limit }
   );
-  return Array.isArray(res) ? res : (res?.stores ?? []);
+  return Array.isArray(data.stores) ? data.stores : [];
 }
 
 // 2차 카테고리 검색
 export async function searchByDiv2Category(div2Category: string, limit = 10): Promise<Store[]> {
   if (!div2Category.trim()) return [];
-  const res = await getJsonViaProxy<Store[] | { stores: Store[]; totalCount?: number }>(
+  const data = await getJson<{ stores: Store[]; totalCount?: number }>(
     "/api/stores/div2-category",
     { div2Category, limit }
   );
-  return Array.isArray(res) ? res : (res?.stores ?? []);
+  return Array.isArray(data.stores) ? data.stores : [];
+}
+
+// 1차 카테고리 검색 부분 일치
+export async function searchByCategoryKeyword(keyword: string, limit = 10): Promise<Store[]> {
+  if (!keyword.trim()) return [];
+  const data = await getJson<AutoCompleteResponse>("/api/stores/category/search", { keyword, limit });
+  return Array.isArray(data.stores) ? data.stores : [];
+}
+
+// 2차 카테고리 검색 부분 일치
+export async function searchByDiv2CategoryKeyword(keyword: string, limit = 10): Promise<Store[]> {
+  if (!keyword.trim()) return [];
+  const data = await getJson<AutoCompleteResponse>("/api/stores/div2-category/search", { keyword, limit });
+  return Array.isArray(data.stores) ? data.stores : [];
+}
+
+// 1차+2차 조합 부분 일치
+export async function searchByCategoryCombined(category: string, div2Category: string, limit = 10): Promise<Store[]> {
+  if (!category.trim() || !div2Category.trim()) return [];
+  const data = await getJson<AutoCompleteResponse>(
+    "/api/stores/category/combined-search",
+    { category, div2Category, limit }
+  );
+  return Array.isArray(data.stores) ? data.stores : [];
 }
 
 // 최근 상점 가져오기
@@ -154,22 +168,45 @@ export function isHangulConsonantOneChar(q: string) {
 
 // 입력 하나로 상점명/자음/카테고리(1차/2차)를 통합 처리
 export async function unifiedSearch(q: string, limit = 10) {
-  const query = q.trim();
-  if (!query) return [];
+  const raw = q.trim();
+  if (!raw) return [];
 
-  // 자음 1글자 처리
-  if (isHangulConsonantOneChar(query)) {
-    return autocompleteByConsonant(query, limit);
+  // 자음 1글자면 자음 경로
+  if (isHangulConsonantOneChar(raw)) {
+    return autocompleteByConsonant(raw, limit);
   }
 
-  const cat = resolveCategory(query);
-  switch (cat.kind) {
-    case "first":
-      return searchByCategory(cat.value, limit);
-    case "second":
-      return searchByDiv2Category(cat.value, limit);
-    case "none":
-    default:
-      return autocompleteStores(query, limit);
+  // 별칭을 쓸 거면 주석 해제, 안 쓰면 바로 normalized = raw;
+  const normalized = raw;
+
+  // 정확 매칭 판별 (FIRST/SECOND 집합)
+  const firstMatch = FIRST_SET.has(normalized);
+  const secondMatch = SECOND_SET.has(normalized);
+
+  if (firstMatch) {
+    const exactFirst = await searchByCategory(normalized, limit);
+    if (exactFirst.length > 0) return exactFirst;
   }
+  if (secondMatch) {
+    const exactSecond = await searchByDiv2Category(normalized, limit);
+    if (exactSecond.length > 0) return exactSecond;
+  }
+
+  // 부분 일치 (2차 → 1차)
+  const byDiv2 = await searchByDiv2CategoryKeyword(normalized, limit);
+  if (byDiv2.length > 0) return byDiv2;
+
+  const byFirst = await searchByCategoryKeyword(normalized, limit);
+  if (byFirst.length > 0) return byFirst;
+
+  // "음료 커피" 같은 2토큰 조합
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+  if (tokens.length >= 2) {
+    const [c1, c2] = tokens;
+    const combo = await searchByCategoryCombined(c1, c2, limit);
+    if (combo.length > 0) return combo;
+  }
+
+  // 폴백: 상점명 자동완성
+  return autocompleteStores(normalized, limit);
 }
