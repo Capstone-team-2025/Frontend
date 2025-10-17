@@ -62,7 +62,6 @@ export default function KakaoMap({
             />
           </Map>
           <MapOverlays
-            onSearch={(q) => console.log("search:", q)}
             onCategoryChange={(ids) => console.log("categories:", ids)}
           />
         </>

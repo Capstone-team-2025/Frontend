@@ -1,9 +1,8 @@
-export const metadata = { title: "지도페이지" };
 import KakaoMap from "@/components/map/KakaoMap";
 
-export default function MapPage() {
+export default function Page() {
   return (
-    <main className="h-[100dvh]">
+    <main className="relative h-[100dvh] w-full overflow-hidden">
       <KakaoMap height="100%" />
     </main>
   );
