@@ -17,14 +17,14 @@ export default async function SetMembershipPage() {
 
   if (token && backend) {
     try {
-      const r = await fetch(`${backend}/api/me`, {
+      const r = await fetch(`${backend}/api/membership/me`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: "no-store",
       });
       if (r.ok) {
         const me = await r.json();
-        initialCarrier = (me.carrier as Carrier | undefined) ?? undefined;
-        initialGrade = (me.level as string | undefined) ?? undefined;
+        initialCarrier = me.carrier as Carrier | undefined;
+        initialGrade = me.level as string | undefined;
       }
     } catch {}
   }
@@ -32,7 +32,10 @@ export default async function SetMembershipPage() {
   return (
     <div>
       <Header title="통신사/등급 재설정" />
-      <SetMembershipClient initialCarrier={initialCarrier} initialGrade={initialGrade} />
+      <SetMembershipClient
+        initialCarrier={initialCarrier}
+        initialGrade={initialGrade}
+      />
     </div>
   );
 }

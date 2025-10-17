@@ -32,14 +32,6 @@ const CARRIER_LABEL: Record<Carrier, string> = {
 type UpdateResponse = {
   success: boolean;
   message?: string;
-  membership?: {
-    membershipId: number;
-    userId: number;
-    carrier: Carrier;
-    level: Grade;
-    cardNumber: string;
-    alertEnabled: boolean;
-  };
 };
 
 export default function SetMembershipClient({
@@ -53,26 +45,13 @@ export default function SetMembershipClient({
 }) {
   const router = useRouter();
 
-  const [viewCarrier, setViewCarrier] = useState<Carrier | "">("");
-  const [viewGrade, setViewGrade] = useState<string>("");
+  const [viewCarrier, setViewCarrier] = useState<Carrier | null>(initialCarrier ?? null);
+  const [viewGrade, setViewGrade] = useState<string | null>(initialGrade ?? null);
 
-  const [formCarrier, setFormCarrier] = useState<Carrier | "">("");
-  const [formGrade, setFormGrade] = useState<Grade | "">("");
+  const [formCarrier, setFormCarrier] = useState<Carrier | "">(initialCarrier ?? "");
+  const [formGrade, setFormGrade] = useState<Grade | "">((initialGrade as Grade) ?? "");
 
   const [saving, setSaving] = useState(false);
-  useEffect(() => {
-    const carrierFromStorage =
-      (localStorage.getItem("carrier") as Carrier | null) ?? null;
-    const levelFromStorage = localStorage.getItem("level") ?? undefined;
-
-    const initCarrier = initialCarrier ?? carrierFromStorage ?? "";
-    const initGrade = (initialGrade ?? levelFromStorage ?? "") as string;
-
-    setViewCarrier(initCarrier);
-    setViewGrade(initGrade);
-
-    setFormCarrier(initCarrier);
-  }, [initialCarrier, initialGrade]);
 
   const allowedGrades: Grade[] = useMemo(() => {
     if (!formCarrier) return [];
@@ -85,7 +64,25 @@ export default function SetMembershipClient({
     if (!allowedGrades.includes(formGrade as Grade)) {
       setFormGrade("" as Grade | "");
     }
-  }, [formCarrier, allowedGrades]);
+  }, [formCarrier, allowedGrades, formGrade]);
+
+  useEffect(() => {
+    if (viewCarrier && viewGrade) return;
+    (async () => {
+      try {
+        const r = await fetch("/api/membership", { cache: "no-store" });
+        const p = await r.json().catch(async () => ({ message: await r.text() }));
+        if (r.ok && p?.success && p?.membership) {
+          const c = p.membership.carrier as Carrier;
+          const l = p.membership.level as string;
+          setViewCarrier(c);
+          setViewGrade(l);
+          if (!formCarrier) setFormCarrier(c);
+          if (!formGrade) setFormGrade(l as Grade);
+        }
+      } catch {}
+    })();
+  }, []);
 
   const save = async () => {
     if (!formCarrier || !formGrade || saving) {
@@ -94,9 +91,12 @@ export default function SetMembershipClient({
     }
     try {
       setSaving(true);
+      const levelForServer =
+        /[A-Za-z]/.test(formGrade) ? (formGrade as string).toUpperCase() : formGrade;
+
       const payload = {
         carrier: formCarrier as Carrier,
-        level: formGrade as Grade,
+        level: levelForServer as Grade,
       };
 
       const res = await fetch("/api/membership/update", {
@@ -114,11 +114,12 @@ export default function SetMembershipClient({
       }
 
       if (!res.ok || !data?.success) {
-        const msg = data?.message || text || "저장 실패";
-        alert(msg);
+        alert(data?.message || text || "저장 실패");
         return;
       }
-      localStorage.setItem("level", payload.level);
+
+      setViewCarrier(formCarrier as Carrier);
+      setViewGrade(formGrade as string);
 
       router.replace("/mypage");
     } catch {
@@ -128,6 +129,9 @@ export default function SetMembershipClient({
     }
   };
 
+  const currentCarrier = (viewCarrier ?? (formCarrier || null)) as Carrier | null;
+  const currentLevel = viewGrade ?? (formGrade || null);
+
   return (
     <div className="p-4 space-y-6">
       <p className="text-m font-bold">현재 통신사 정보</p>
@@ -135,17 +139,17 @@ export default function SetMembershipClient({
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-neutral-800 flex items-center justify-center">
             <span className="text-white font-bold text-lg">
-              {viewCarrier ? String(viewCarrier)[0] : "?"}
+              {currentCarrier ? currentCarrier[0] : "?"}
             </span>
           </div>
           <div className="flex flex-col">
             <p className="text-[15px] font-medium">
-              {viewCarrier ? CARRIER_LABEL[viewCarrier as Carrier] : "미설정"}
+              {currentCarrier ? CARRIER_LABEL[currentCarrier] : "미설정"}
             </p>
             <div className="mt-1">
-              {viewGrade && (
+              {currentLevel && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-gray-800 text-[11px] text-white font-semibold">
-                  {viewGrade}
+                  {currentLevel}
                 </span>
               )}
             </div>
@@ -162,9 +166,7 @@ export default function SetMembershipClient({
             value={formCarrier}
             onChange={(e) => setFormCarrier(e.target.value as Carrier)}
           >
-            <option value="" disabled>
-              통신사 선택
-            </option>
+            <option value="" disabled>통신사 선택</option>
             <option value="SKT">SK Telecom</option>
             <option value="KT">KT</option>
             <option value="LGU+">LG U+</option>
@@ -186,13 +188,9 @@ export default function SetMembershipClient({
             onChange={(e) => setFormGrade(e.target.value as Grade)}
             disabled={!formCarrier || allowedGrades.length === 0}
           >
-            <option value="" disabled>
-              등급 선택
-            </option>
+            <option value="" disabled>등급 선택</option>
             {allowedGrades.map((g) => (
-              <option key={g} value={g}>
-                {g}
-              </option>
+              <option key={g} value={g}>{g}</option>
             ))}
           </select>
           <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
@@ -201,9 +199,7 @@ export default function SetMembershipClient({
             </svg>
           </div>
         </div>
-        {!formCarrier && (
-          <p className="text-xs text-rose-500">먼저 통신사를 선택하세요.</p>
-        )}
+        {!formCarrier && <p className="text-xs text-rose-500">먼저 통신사를 선택하세요.</p>}
       </div>
 
       <div className="pt-2">
