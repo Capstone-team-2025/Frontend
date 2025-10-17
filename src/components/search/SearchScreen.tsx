@@ -8,7 +8,6 @@ import { suggestStoreNames, suggestByConsonant, isHangulConsonantOneChar } from 
 
 export default function SearchScreen({ prefill = "" }: { prefill?: string }) {
   const router = useRouter();
-  const [q, setQ] = useState(prefill);
   const [open, setOpen] = useState(!!prefill);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [highlight, setHighlight] = useState(-1);
@@ -17,7 +16,6 @@ export default function SearchScreen({ prefill = "" }: { prefill?: string }) {
 
   useEffect(() => {
     if (prefill.trim()) {
-      setQ(prefill);
       setOpen(true);
       runSuggest(prefill);
     }
@@ -87,7 +85,6 @@ export default function SearchScreen({ prefill = "" }: { prefill?: string }) {
             placeholder="여기서 검색"
             onSearch={goResults}
             onChangeDebounced={(text) => {
-              setQ(text);
               runSuggest(text);
             }}
             debounceMs={180}

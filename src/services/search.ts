@@ -56,14 +56,15 @@ async function getJson<T>(path: string, params: Record<string, string | number> 
       throw new Error(`HTTP ${res.status}`);
     }
     return (await res.json()) as T;
-  } catch (e:any) {
-    console.error(`[API ${path}] network error`, e?.message ?? e);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error(`[API ${path}] network error`, msg);
     throw e;
   }
 }
 
 // 프록시 경유 공통 요청 (프론트 쿠키 auth_token → 백엔드 Authorization 헤더로 전달)
-async function getJsonViaProxy<T>(path: string, params: Record<string, string | number> = {}) {
+export async function getJsonViaProxy<T>(path: string, params: Record<string, string | number> = {}) {
   const qs = new URLSearchParams({ path, ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])) });
   const res = await fetch(`/api/proxy?${qs.toString()}`, { cache: "no-store" });
   if (!res.ok) {
@@ -179,7 +180,7 @@ export async function unifiedSearch(q: string, limit = 10) {
   const normalized = raw;
 
   // 정확 매칭 판별 (FIRST/SECOND 집합)
-  const firstMatch  = FIRST_SET.has(normalized);
+  const firstMatch = FIRST_SET.has(normalized);
   const secondMatch = SECOND_SET.has(normalized);
 
   if (firstMatch) {
