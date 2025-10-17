@@ -4,12 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import SearchInput from "@/components/map/overlays/SearchInput";
 import GrayBackBtn from "@/components/button/GrayBackBtn";
-import {
-  autocompleteStores,
-  autocompleteByConsonant,
-  isHangulConsonantOneChar,
-  Store,
-} from "@/services/search";
+import { unifiedSearch, fetchRecentStores, Store } from "@/services/search";
 
 export default function SearchResultsScreen({ q }: { q: string }) {
   const router = useRouter();
@@ -22,11 +17,18 @@ export default function SearchResultsScreen({ q }: { q: string }) {
     let alive = true;
     (async () => {
       const term = q.trim();
-      if (!term) { setItems([]); return; }
-      const data = isHangulConsonantOneChar(term)
-        ? await autocompleteByConsonant(term, 30)
-        : await autocompleteStores(term, 30);
-      if (alive) setItems(data);
+      if (!term) {
+        const recent = await fetchRecentStores(20);
+        if (alive) setItems(recent);
+        return;
+      }
+      try {
+        const data = await unifiedSearch(term, 30);
+        if (alive) setItems(data);
+      } catch (e) {
+        console.error(e);
+        if (alive) setItems([]);
+      }
     })();
     return () => { alive = false; };
   }, [q]);
@@ -54,7 +56,7 @@ export default function SearchResultsScreen({ q }: { q: string }) {
             <SearchInput
               defaultValue={queryText}
               placeholder="여기서 검색"
-              onSearch={goResults} 
+              onSearch={goResults}
               onChangeDebounced={(t: string) => setQueryText(t)}
               onFocus={() => goOverlay(queryText)}
               debounceMs={150}
