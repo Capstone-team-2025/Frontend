@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.90.4",
+    "@tanstack/react-query-devtools": "^5.90.2",
     "axios": "^1.12.2",
     "framer-motion": "^12.23.22",
     "motion": "^12.23.22",
