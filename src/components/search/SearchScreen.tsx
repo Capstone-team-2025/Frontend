@@ -4,11 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import SearchInput from "@/components/map/overlays/SearchInput";
 import GrayBackBtn from "@/components/button/GrayBackBtn";
-import {
-  suggestStoreNames,
-  suggestByConsonant,
-  isHangulConsonantOneChar,
-} from "@/services/search";
+import { suggestStoreNames, suggestByConsonant, isHangulConsonantOneChar } from "@/services/search";
 
 export default function SearchScreen({ prefill = "" }: { prefill?: string }) {
   const router = useRouter();
@@ -26,6 +22,28 @@ export default function SearchScreen({ prefill = "" }: { prefill?: string }) {
       runSuggest(prefill);
     }
   }, [prefill]);
+
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+
+    const raf = requestAnimationFrame(() => {
+      el.focus({ preventScroll: true });
+      const len = el.value.length;
+      try { el.setSelectionRange(len, len); } catch { }
+    });
+
+    const t = setTimeout(() => {
+      if (document.activeElement !== el) {
+        el.focus({ preventScroll: true });
+      }
+    }, 60);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(t);
+    };
+  }, []);
 
   const runSuggest = async (text: string) => {
     if (abortRef.current) abortRef.current.abort();
