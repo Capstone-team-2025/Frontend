@@ -1,10 +1,13 @@
-export const metadata = { title: "문의하기페이지" };
+export const metadata = { title: "문의하기" };
+
 import Header from "@/components/common/Header";
-export default function contactPage() {
+import ContactClient from "./ContactClient";
+
+export default function ContactPage() {
   return (
-    <div>
+    <div className="px-4">
       <Header title="문의하기" />
-      문의하기페이지 준비중
+      <ContactClient />
     </div>
-  ); // 임시 UI
+  );
 }
