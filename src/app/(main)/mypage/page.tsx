@@ -4,7 +4,7 @@ import Header from "@/components/common/Header";
 export const metadata = { title: "마이페이지" };
 export const revalidate = 0;   
 
-export default async function SignupPage() {
+export default async function MyPagePage() {
   const data = await getUserData();
 
   const user = {
