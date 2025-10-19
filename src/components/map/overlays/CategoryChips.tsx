@@ -92,7 +92,7 @@ export default function CategoryChips({
                 "h-10 px-4 gap-2 rounded-full border shadow-sm",
                 "text-[15px] leading-5",
                 active
-                  ? "bg-[#FF8F79] text-white font-bold border-[#FF8F79]"
+                  ? "bg-[#FF5F3F] text-white font-bold border-[#FF8F79]"
                   : "bg-white text-neutral-800 border-neutral-200",
               ].join(" ")}
               aria-pressed={active}
