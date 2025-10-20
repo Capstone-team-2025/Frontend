@@ -1,4 +1,4 @@
-import SearchScreen from "@/components/search/SearchScreen";
+import SearchScreen from "./SearchScreen";
 
 export default async function Page({
   searchParams,
