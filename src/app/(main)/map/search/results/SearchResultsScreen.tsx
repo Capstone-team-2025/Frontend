@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import SearchInput from "@/components/map/overlays/SearchInput";
+import SearchInput from "@/app/(main)/map/overlays/SearchInput";
 import GrayBackBtn from "@/components/button/GrayBackBtn";
 import { unifiedSearch, fetchRecentStores, Store } from "@/services/search";
 
@@ -47,8 +47,18 @@ export default function SearchResultsScreen({ q }: { q: string }) {
     router.replace(`/map/search/results?q=${encodeURIComponent(term)}`, { scroll: false });
   };
 
+  const normalize = (s: string) => s.replace(/\([^)]*\)/g, "").replace(/[·.\-_/]/g, " ").replace(/\s+/g, " ").trim();
+
+  const openOnMap = (s: Store) => {
+    const params = new URLSearchParams();
+    params.set("storeId", String(s.storeId));
+    params.set("sheet", "store");
+    params.set("name", s.name);
+    router.push(`/map?${params.toString()}`);
+  };
+
   return (
-    <div className="fixed inset-0 bg-white z-[100] flex flex-col" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-[100] flex flex-col bg-white" role="dialog" aria-modal="true">
       {/* 상단 바 */}
       <div className="border-b border-neutral-100">
         <div className="mx-auto w-full max-w-[425px] px-3 pt-[calc(env(safe-area-inset-top)+8px)] h-[56px] flex items-center gap-2">
@@ -86,6 +96,9 @@ export default function SearchResultsScreen({ q }: { q: string }) {
                 <li
                   key={s.storeId}
                   className="flex gap-3 items-center p-2 border-b border-neutral-100 cursor-pointer"
+                  onClick={() => openOnMap(s)}
+                  role="button"
+                  tabIndex={0}
                 >
                   <div className="w-14 h-14 rounded-lg bg-neutral-100 flex items-center justify-center text-neutral-400">🏪</div>
                   <div className="min-w-0 flex-1">
@@ -95,7 +108,6 @@ export default function SearchResultsScreen({ q }: { q: string }) {
                       <div className="text-xs text-neutral-500 truncate">{s.div2Category}</div>
                     )}
                   </div>
-                  <button aria-label="관심" className="text-rose-400 text-xl">♥</button>
                 </li>
               ))}
             </ul>
