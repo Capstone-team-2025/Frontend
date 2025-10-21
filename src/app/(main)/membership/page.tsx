@@ -1,5 +1,17 @@
-export const metadata = { title: "멤버십 카드 페이지" };
+export const metadata = { title: "멤버십 카드" };
 
-export default function SignupPage() {
-  return <div>멤버십 카드 페이지 준비중</div>; // 임시 UI
+import Header from "@/components/common/Header";
+import MembershipClient from "./membershipClient";
+import MembershipUserInfo from "./userInfoClient";
+
+export default function MembershipPage() {
+  return (
+    <main>
+      <Header title="멤버십 카드" />
+      <div className="pt-5">
+        <MembershipUserInfo />
+        <MembershipClient />
+      </div>
+    </main>
+  );
 }

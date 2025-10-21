@@ -14,7 +14,10 @@ export default function Header({ title }: { title: string }) {
     bgColor = "bg-[#FB4E6F]";
   }
   const showBackButton =
-    pathname.startsWith("/mypage/") && pathname !== "/mypage";
+    pathname.startsWith("/mypage/") &&
+    pathname !== "/mypage" ||
+    pathname.startsWith("/membership/add")||
+    pathname.startsWith("/map/store");
   const isPink = bgColor === "bg-[#FB4E6F]";
   const backIcon = isPink ? "/images/WBack.svg" : "/images/BBack.svg";
   const textColor = isPink ? "text-white" : "text-gray-700";
