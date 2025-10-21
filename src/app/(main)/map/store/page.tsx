@@ -11,3 +11,4 @@ export default function StorePage({ params }: { params: { storeId: string } }) {
     </main>
   );
 }
+

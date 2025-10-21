@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import SearchInput from "@/components/map/overlays/SearchInput";
+import SearchInput from "@/app/(main)/map/overlays/SearchInput";
 import GrayBackBtn from "@/components/button/GrayBackBtn";
 import { suggestStoreNames, suggestByConsonant, isHangulConsonantOneChar } from "@/services/search";
 

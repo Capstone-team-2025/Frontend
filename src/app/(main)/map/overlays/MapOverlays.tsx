@@ -22,7 +22,7 @@ export default function MapOverlays({
   const [selected, setSelected] = useState<string[]>(["food"]);
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-[1000] p-3 space-y-2">
+    <div className="pointer-events-none absolute inset-x-0 top-0 z-[2] p-3 space-y-2">
       <div className="pointer-events-auto">
         <SearchLauncher />
       </div>
