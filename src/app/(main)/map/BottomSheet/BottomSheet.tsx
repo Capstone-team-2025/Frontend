@@ -14,6 +14,9 @@ type Props = {
   defaultRatio?: number;
   className?: string;
   children: React.ReactNode;
+
+  onVisibleHeightChange?: (px: number) => void;
+  onDraggingChange?: (dragging: boolean) => void;
 };
 
 export default function BottomSheet({
@@ -26,6 +29,8 @@ export default function BottomSheet({
   defaultRatio,
   className,
   children,
+  onVisibleHeightChange,
+  onDraggingChange,
 }: Props) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -49,6 +54,12 @@ export default function BottomSheet({
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!mounted || !onVisibleHeightChange) return;
+    const px = open ? Math.round(ratio * vh) : 0;
+    onVisibleHeightChange(px);
+  }, [mounted, open, ratio, vh, onVisibleHeightChange]);
+
+  useEffect(() => {
     if (!open) return;
     const r = clamp(defaultRatio ?? ratio ?? MIN, MIN, MAX);
     setRatio(r);
@@ -61,6 +72,7 @@ export default function BottomSheet({
 
   const onHandlePointerDown = (e: React.PointerEvent) => {
     dragging.current = true;
+    onDraggingChange?.(true);
     startY.current = e.clientY;
     lastY.current = e.clientY;
     initRatioRef.current = ratio;
@@ -75,6 +87,7 @@ export default function BottomSheet({
     const delta = -(dy / Math.max(1, vh));
     const next = clamp(initRatioRef.current + delta, MIN, MAX);
 
+    onVisibleHeightChange?.(Math.round(next * vh));
     if (contentRef.current) {
       contentRef.current.style.overflow =
         next >= MAX - snapEpsilon ? "auto" : "hidden";
@@ -85,6 +98,7 @@ export default function BottomSheet({
   const onHandlePointerUp = () => {
     if (!dragging.current) return;
     dragging.current = false;
+    onDraggingChange?.(false);
 
     const draggedDown = (lastY.current - startY.current) > 6;
 
