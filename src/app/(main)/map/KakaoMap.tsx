@@ -28,6 +28,9 @@ type Props = {
   markers?: Place[];
   onMarkerClick?: (p: Place) => void;
   autoLocateOnReady?: boolean;
+  myLocationBottomOffset?: number;
+  myLocationBaseBottomPx?: number;
+  myLocationDragging?: boolean;
 };
 
 const BAEKSEOK_UNIV: LatLng = { lat: 36.8398, lng: 127.1849 };
@@ -39,6 +42,9 @@ export default function KakaoMap({
   markers = [],
   onMarkerClick,
   autoLocateOnReady = true,
+  myLocationBottomOffset = 0,
+  myLocationBaseBottomPx = 100,
+  myLocationDragging = false,
 }: Props) {
   const [ready, setReady] = useState(false);
   const [mapCenter, setMapCenter] = useState<LatLng>(center);
@@ -121,6 +127,8 @@ export default function KakaoMap({
         setAccuracy(Math.round(accuracy));
       },
       () => {
+        setUserLocation(null);
+        setAccuracy(null);
       },
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
     );
@@ -167,13 +175,26 @@ export default function KakaoMap({
               mapRef.current = map as unknown as KakaoMapInstance;
             }}
           >
-            <UserLocationRadius
-              center={userLocation ?? mapCenter}
-              radiusMeters={accuracy ?? 300}
-              markerSize={{ width: 28, height: 34 }}
-              markerTailPad={9}
-              circleStyle={{ strokeWeight: 0, fillOpacity: 0 }}
-            />
+            {/* 내 위치 정보 허용: 내 위치 마커 표시 */}
+            {userLocation && (
+              <UserLocationRadius
+                center={userLocation}
+                radiusMeters={accuracy ?? 300}
+                showCircle={false}
+                showMarker={true}
+                markerSize={{ width: 28, height: 34 }}
+              />
+            )}
+            
+            {/* 내 위치 정보 거부: 내 위치 마커 숨기기 */}
+            {!userLocation && (
+              <UserLocationRadius
+                center={mapCenter}
+                radiusMeters={500}
+                showCircle={false}
+                showMarker={false}
+              />
+            )}
 
             {markers.map((p) => (
               <MapMarker
@@ -185,7 +206,13 @@ export default function KakaoMap({
           </Map>
 
           <MapOverlays onCategoryChange={(ids) => console.log("categories:", ids)} />
-          {showMyLocationButton && <MyLocationButton onClick={recenterToUser} />}
+          {showMyLocationButton && (
+            <MyLocationButton 
+              onClick={recenterToUser} 
+              bottomOffset={myLocationBottomOffset}
+              baseBottomPx={myLocationBaseBottomPx}
+              dragging={myLocationDragging}
+            />)}
         </>
       ) : (
         <div>지도를 불러오는 중...</div>
