@@ -3,19 +3,23 @@
 type Props = {
   onClick: () => void;
   className?: string;
+  mode?: "fixed" | "follow";
   bottomOffset?: number;
   baseBottomPx?: number;
   dragging?: boolean;
 };
 
 export default function MyLocationButton({ 
-  onClick, 
-  className, 
-  bottomOffset = 0, 
+  onClick,
+  className,
+  mode = "fixed",
+  bottomOffset = 0,
   baseBottomPx = 100,
   dragging = false,
 }: Props) {
-  const bottom = `calc(env(safe-area-inset-bottom, 0px) + ${Math.max(baseBottomPx, bottomOffset)}px)`;
+  const safe = "env(safe-area-inset-bottom, 0px)";
+  const extra = mode === "follow" ? bottomOffset : 0;
+  const bottom = `calc(${safe} + ${baseBottomPx + extra}px)`;
 
   return (
     <button
@@ -29,9 +33,9 @@ export default function MyLocationButton({
       style={{ bottom }}
     >
       <svg width="22" height="22" viewBox="0 0 24 24">
-        <path d="M11 2v2M11 20v2M2 11h2M20 11h2" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-        <circle cx="12" cy="12" r="6.5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-        <circle cx="12" cy="12" r="1.8" fill="currentColor"/>
+        <path d="M11 2v2M11 20v2M2 11h2M20 11h2" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        <circle cx="12" cy="12" r="6.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        <circle cx="12" cy="12" r="1.8" fill="currentColor" />
       </svg>
     </button>
   );
