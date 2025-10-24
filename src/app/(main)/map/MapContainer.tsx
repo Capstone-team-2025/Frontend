@@ -14,7 +14,7 @@ type StoreLite = {
   div2Category?: string;
 };
 
-const BAEKSEOK_UNIV = { lat: 36.832361, lng: 127.182118 };
+const BAEKSEOK_UNIV = { lat: 36.8398, lng: 127.1849 };
 
 export default function MapContainer({
   initialKeyword,
@@ -104,9 +104,9 @@ export default function MapContainer({
           setSelectedPlace(p);
           setSheetOpen(true);
         }}
-        myLocationBottomOffset={effectiveOffset}
-        myLocationBaseBottomPx={baseBottomPx}
-        myLocationDragging={sheetDragging}
+        myLocationBottomOffset={0}
+        myLocationBaseBottomPx={100}
+        myLocationDragging={false}
       />
 
       <BottomSheet
