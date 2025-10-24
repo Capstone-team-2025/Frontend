@@ -6,11 +6,18 @@ type Size = { width: number; height: number };
 
 export type UserLocationRadiusProps = {
   center: { lat: number; lng: number };
+
+  /** 표시 토글 */
+  showCircle?: boolean;
+  showMarker?: boolean;
+
+  /** 마커 관련 */
   markerSrc?: string;
-  markerSize?: Size;        // 마커 사이즈
-  markerTailPad?: number;   // 핀 끝 여유
-  radiusMeters?: number;    // 원형 영역 반경(m)
-  zIndex?: number;
+  markerSize?: Size;
+  markerTailPad?: number;
+
+  /** 원(반경) 관련 */
+  radiusMeters?: number;
   circleStyle?: {
     strokeWeight?: number;
     strokeColor?: string;
@@ -18,15 +25,22 @@ export type UserLocationRadiusProps = {
     fillColor?: string;
     fillOpacity?: number;   // 0~1
   };
+
+  /** z-index */
+  zIndex?: number;
 };
 
 export default function UserLocationRadius({
   center,
+
+  showCircle = false,
+  showMarker = true,
+
   markerSrc = "/images/MapMarker.png",
   markerSize = { width: 50, height: 59 },
   markerTailPad = 6,
+
   radiusMeters = 500,
-  zIndex = 5,
   circleStyle = {
     strokeWeight: 2,
     strokeColor: "#8A84FF",
@@ -34,6 +48,8 @@ export default function UserLocationRadius({
     fillColor: "#8A84FF",
     fillOpacity: 0.15,
   },
+
+  zIndex = 5,
 }: UserLocationRadiusProps) {
   const offset = {
     x: Math.round(markerSize.width / 2),
@@ -42,29 +58,33 @@ export default function UserLocationRadius({
 
   return (
     <>
-      {/* 반경 원 */}
-      <Circle
-        center={center}
-        radius={radiusMeters}
-        strokeWeight={circleStyle.strokeWeight}
-        strokeColor={circleStyle.strokeColor}
-        strokeOpacity={circleStyle.strokeOpacity}
-        fillColor={circleStyle.fillColor}
-        fillOpacity={circleStyle.fillOpacity}
-        zIndex={zIndex}
-      />
+      {/* 반경 원 (옵션) */}
+      {showCircle && (
+        <Circle
+          center={center}
+          radius={radiusMeters}
+          strokeWeight={circleStyle.strokeWeight}
+          strokeColor={circleStyle.strokeColor}
+          strokeOpacity={circleStyle.strokeOpacity}
+          fillColor={circleStyle.fillColor}
+          fillOpacity={circleStyle.fillOpacity}
+          zIndex={zIndex}
+        />
+      )}
 
       {/* 현재 위치 마커 */}
-      <MapMarker
-        position={center}
-        title="내 위치"
-        zIndex={zIndex + 1}
-        image={{
-          src: markerSrc,
-          size: markerSize,
-          options: { offset },
-        }}
-      />
+      {showMarker && (
+        <MapMarker
+          position={center}
+          title="내 위치"
+          zIndex={zIndex + 1}
+          image={{
+            src: markerSrc,
+            size: markerSize,
+            options: { offset },
+          }}
+        />
+      )}
     </>
   );
 }

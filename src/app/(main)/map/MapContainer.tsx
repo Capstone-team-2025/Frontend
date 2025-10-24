@@ -32,6 +32,13 @@ export default function MapContainer({
   const router = useRouter();
 
   const [sheetOpen, setSheetOpen] = useState(initialSheetOpen);
+  const [sheetHeight, setSheetHeight] = useState(0);
+  const [sheetDragging, setSheetDragging] = useState(false);
+
+  const GAP = 4;
+  const effectiveOffset = sheetOpen ? (sheetHeight + GAP) : 0;
+  const baseBottomPx = 100;
+
   const [selectedStore, setSelectedStore] = useState<StoreLite | null>(
     initialSheetOpen
       ? { name: initialName || initialKeyword || "", category: initialCategory, storeId: initialStoreId }
@@ -97,6 +104,9 @@ export default function MapContainer({
           setSelectedPlace(p);
           setSheetOpen(true);
         }}
+        myLocationBottomOffset={effectiveOffset}
+        myLocationBaseBottomPx={baseBottomPx}
+        myLocationDragging={sheetDragging}
       />
 
       <BottomSheet
@@ -106,6 +116,9 @@ export default function MapContainer({
           if (!v) setSelectedPlace(null);
         }}
         defaultRatio={0.5}
+        fullRatio={0.66}
+        onVisibleHeightChange={setSheetHeight}
+        onDraggingChange={setSheetDragging}
       >
         {initialStoreId ? (
           <StoreBottomSheet
