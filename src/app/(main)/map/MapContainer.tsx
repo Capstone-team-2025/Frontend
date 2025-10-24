@@ -38,7 +38,6 @@ export default function MapContainer({
   const GAP = 4;
   const effectiveOffset = sheetOpen ? (sheetHeight + GAP) : 0;
   const baseBottomPx = 100;
-
   const [selectedStore, setSelectedStore] = useState<StoreLite | null>(
     initialSheetOpen
       ? { name: initialName || initialKeyword || "", category: initialCategory, storeId: initialStoreId }

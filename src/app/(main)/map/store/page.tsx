@@ -1,5 +1,13 @@
-export const metadata = { title: "검색한 가게 상세 페이지" };
+export const metadata = { title: "가게 상세 페이지" };
+import Header from "@/components/common/Header";
+import StoreInfo from "./[storeId]/StoreInfo";
 
-export default function SignupPage() {
-  return <div>검색한 가게 상세 페이지 준비중</div>; // 임시 UI
+export default function StorePage({ params }: { params: { storeId: string } }) {
+  const storeIdNum = Number(params.storeId);
+  return (
+    <main>
+      <Header title="할인지도" />
+      <StoreInfo storeId={storeIdNum} />
+    </main>
+  );
 }

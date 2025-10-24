@@ -14,6 +14,7 @@ type Props = {
   defaultRatio?: number;
   className?: string;
   children: React.ReactNode;
+
   onVisibleHeightChange?: (px: number) => void;
   onDraggingChange?: (dragging: boolean) => void;
 };
@@ -87,7 +88,6 @@ export default function BottomSheet({
     const next = clamp(initRatioRef.current + delta, MIN, MAX);
 
     onVisibleHeightChange?.(Math.round(next * vh));
-
     if (contentRef.current) {
       contentRef.current.style.overflow =
         next >= MAX - snapEpsilon ? "auto" : "hidden";
