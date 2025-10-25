@@ -58,7 +58,7 @@ export default function ContactClient() {
   };
 
   return (
-    <div className="pt-2">
+    <div className="pt-2 px-4">
       <p className="text-m font-bold mb-10">불편하셨던 사항들을 알려주세요.</p>
       <div className="border rounded-xl p-3 min-h-60">
         <textarea

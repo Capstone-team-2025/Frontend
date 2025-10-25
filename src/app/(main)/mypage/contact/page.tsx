@@ -5,7 +5,7 @@ import ContactClient from "./ContactClient";
 
 export default function ContactPage() {
   return (
-    <div className="px-4">
+    <div >
       <Header title="문의하기" />
       <ContactClient />
     </div>
