@@ -1,13 +1,11 @@
 export const metadata = { title: "가게 상세 페이지" };
 import Header from "@/components/common/Header";
-import StoreInfo from "./[storeId]/StoreInfo";
 
-export default function StorePage({ params }: { params: { storeId: string } }) {
-  const storeIdNum = Number(params.storeId);
+
+export default function StorePage() {
   return (
     <main>
       <Header title="할인지도" />
-      <StoreInfo storeId={storeIdNum} />
     </main>
   );
 }
