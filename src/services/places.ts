@@ -59,10 +59,23 @@ type FetchOpts = {
 
 function withTimeout(signal: AbortSignal | undefined, timeoutMs: number) {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(new DOMException("Timeout", "AbortError")), timeoutMs);
+  const timer = setTimeout(
+    () => ctrl.abort(new DOMException("Timeout", "AbortError")),
+    timeoutMs
+  );
+
   if (signal) {
-    signal.addEventListener("abort", () => ctrl.abort((signal as any).reason), { once: true });
+    signal.addEventListener(
+      "abort",
+      () => {
+        const reason = (signal as AbortSignal & { reason?: unknown }).reason;
+        if (reason !== undefined) ctrl.abort(reason);
+        else ctrl.abort(new DOMException("Aborted", "AbortError"));
+      },
+      { once: true }
+    );
   }
+
   return { signal: ctrl.signal, done: () => clearTimeout(timer) };
 }
 
@@ -140,11 +153,17 @@ export async function fetchNearbyByCategoryFlat(
   const flat: Place[] = [];
   const brandMap = json.data ?? {};
 
+  function toStringId(v: unknown): string {
+    if (typeof v === "string") return v;
+    if (typeof v === "number") return String(v);
+    return v == null ? "" : String(v);
+  }
+
   Object.keys(brandMap).forEach((brand) => {
     const arr = brandMap[brand];
     if (Array.isArray(arr)) {
       arr.forEach((p) => {
-        const kakaoId = typeof p.kakaoId === "string" ? p.kakaoId : String((p as any).kakaoId);
+        const kakaoId = toStringId(p.kakaoId);
         flat.push({ ...p, kakaoId });
       });
     }

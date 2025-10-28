@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import clsx from "clsx";
 
@@ -59,7 +59,7 @@ export default function BottomSheet({
 
   // touch-action 동적 전환
   const allowDragAnywhereRef = useRef(true);
-  const updateTouchAction = () => {
+  const updateTouchAction = useCallback(() => {
     const el = contentRef.current;
     if (!el) return;
     const atMax = ratio >= MAX - snapEpsilon;
@@ -67,7 +67,7 @@ export default function BottomSheet({
     const allowDrag = !atMax || atTop;
     allowDragAnywhereRef.current = allowDrag;
     el.style.touchAction = allowDrag ? "none" : "pan-y";
-  };
+  }, [ratio, MAX, snapEpsilon]);
 
   // 콜백: 가시 높이 픽셀
   useEffect(() => {
@@ -80,18 +80,22 @@ export default function BottomSheet({
   useEffect(() => {
     if (!open) return;
     updateTouchAction();
-  }, [open, ratio]); // MAX/snapEpsilon은 ratio에 반영됨
+  }, [open, updateTouchAction]);
 
   // open 변경 시 초기화
   useEffect(() => {
     if (!open) return;
     const r = clamp(defaultRatio ?? ratio ?? MIN, MIN, MAX);
-    setRatio(r);
+
+    if (Math.abs(r - ratio) > 1e-6) {
+      setRatio(r);
+    }
     initRatioRef.current = r;
+
     if (contentRef.current) {
       contentRef.current.style.overflow = r >= MAX - snapEpsilon ? "auto" : "hidden";
     }
-  }, [open]);
+  }, [open, defaultRatio, ratio, MIN, MAX, snapEpsilon]);
 
   const DRAG_THRESHOLD_PX = 6;
 
