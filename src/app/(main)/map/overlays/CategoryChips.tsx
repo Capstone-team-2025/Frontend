@@ -15,7 +15,7 @@ export type Chip = {
 const withSuffixBeforeExt = (path: string, suffix = "-a") => path.replace(/(?=\.[^.]+$)/, suffix);
 
 type Props = {
-  items: Chip[];
+  items: readonly Chip[];
   selectedIds: string[];
   onToggle: (id: string, nextSelected: string[]) => void;
   singleSelect?: boolean;

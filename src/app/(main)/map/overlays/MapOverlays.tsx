@@ -11,15 +11,16 @@ const CATEGORIES: Chip[] = [
   { id: "mobility",label: "모빌리티",  iconSrc: "/images/category_icon/taxi.png" },
   { id: "life",    label: "라이프",   iconSrc: "/images/category_icon/home.png" },
   { id: "travel",  label: "여행",     iconSrc: "/images/category_icon/world-map.png" },
-  { id: "etc",     label: "기타",     iconSrc: "/images/category_icon/ellipsis.png" },
 ];
 
 export default function MapOverlays({
   onCategoryChange,
+  initialSelected = [],
 }: {
   onCategoryChange: (ids: string[]) => void;
+  initialSelected?: string[];
 }) {
-  const [selected, setSelected] = useState<string[]>(["food"]);
+  const [selected, setSelected] = useState<string[]>(initialSelected);
 
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 z-[2] p-3 space-y-2">
@@ -31,8 +32,12 @@ export default function MapOverlays({
         <CategoryChips
           items={CATEGORIES}
           selectedIds={selected}
-          onToggle={(_, next) => { setSelected(next); onCategoryChange(next); }}
-          singleSelect={false}
+          onToggle={(_, next) => {
+            setSelected(next);
+            onCategoryChange(next);
+          }}
+          singleSelect
+          className="max-w-[90vw] mx-auto"
         />
       </div>
     </div>

@@ -4,7 +4,6 @@ import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
 import { Map, MapMarker } from "react-kakao-maps-sdk";
 import UserLocationRadius from "./overlays/UserLocationRadius";
-import MapOverlays from "./overlays/MapOverlays";
 import MyLocationButton from "./overlays/MyLocationButton";
 import type { Place } from "@/services/places";
 
@@ -204,8 +203,7 @@ export default function KakaoMap({
               />
             ))}
           </Map>
-
-          <MapOverlays onCategoryChange={(ids) => console.log("categories:", ids)} />
+          
           {showMyLocationButton && (
             <MyLocationButton 
               onClick={recenterToUser} 

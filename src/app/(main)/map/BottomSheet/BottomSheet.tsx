@@ -64,7 +64,7 @@ export default function BottomSheet({
     if (!el) return;
     const atMax = ratio >= MAX - snapEpsilon;
     const atTop = el.scrollTop <= 0;
-    const allowDrag = !atMax || atTop; // 최대 미만이거나, 최대+맨위면 시트 드래그 허용
+    const allowDrag = !atMax || atTop;
     allowDragAnywhereRef.current = allowDrag;
     el.style.touchAction = allowDrag ? "none" : "pan-y";
   };
@@ -276,7 +276,6 @@ export default function BottomSheet({
           style={{
             overflow: ratio >= MAX - snapEpsilon ? "auto" : "hidden",
             overscrollBehavior: "contain",
-            // touchAction은 JS로 동적 전환 (updateTouchAction)
           }}
           onScroll={onContentScroll}
           onPointerDown={onAnyPointerDown}
