@@ -41,11 +41,20 @@ export default function StoreBottomSheet({
                 <div className="text-xs text-neutral-500 mt-0.5">{(p.distance / 1000).toFixed(2)} km</div>
               )}
             </div>
-            <FavoriteButton
+            <div
               className="shrink-0 mt-1"
-              size={22}
-              active={favoritePlaceIds ? favoritePlaceIds.has(String(p.placeId)) : false}
-              onChange={(next) => onToggleFavoritePlace?.(p, next)} />
+              onClick={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+              role="button"
+              aria-label="즐겨찾기 토글"
+            >
+              <FavoriteButton
+                className="shrink-0 mt-1"
+                size={22}
+                active={favoritePlaceIds ? favoritePlaceIds.has(String(p.placeId)) : false}
+                onChange={(next) => onToggleFavoritePlace?.(p, next)}
+              />
+            </div>
           </div>
         ))}
       </div>

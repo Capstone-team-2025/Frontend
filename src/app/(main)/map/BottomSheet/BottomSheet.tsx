@@ -53,9 +53,21 @@ export default function BottomSheet({
   const startX = useRef(0);
   const lastY = useRef(0);
   const initRatioRef = useRef(ratio);
-  const verticalOnlyRef = useRef(false); // 수평 제스처 무시
+  const verticalOnlyRef = useRef(false);
 
   const contentRef = useRef<HTMLDivElement>(null);
+
+  // touch-action 동적 전환
+  const allowDragAnywhereRef = useRef(true);
+  const updateTouchAction = () => {
+    const el = contentRef.current;
+    if (!el) return;
+    const atMax = ratio >= MAX - snapEpsilon;
+    const atTop = el.scrollTop <= 0;
+    const allowDrag = !atMax || atTop; // 최대 미만이거나, 최대+맨위면 시트 드래그 허용
+    allowDragAnywhereRef.current = allowDrag;
+    el.style.touchAction = allowDrag ? "none" : "pan-y";
+  };
 
   // 콜백: 가시 높이 픽셀
   useEffect(() => {
@@ -63,6 +75,12 @@ export default function BottomSheet({
     const px = open ? Math.round(ratio * vh) : 0;
     onVisibleHeightChange(px);
   }, [mounted, open, ratio, vh, onVisibleHeightChange]);
+
+  // open/ratio 바뀔 때 touch-action 동기화
+  useEffect(() => {
+    if (!open) return;
+    updateTouchAction();
+  }, [open, ratio]); // MAX/snapEpsilon은 ratio에 반영됨
 
   // open 변경 시 초기화
   useEffect(() => {
@@ -86,87 +104,116 @@ export default function BottomSheet({
       contentRef.current.style.overflow = next >= MAX - snapEpsilon ? "auto" : "hidden";
     }
     setRatio(next);
+    // 높이 바뀌면 제스처 라우팅 재결정
+    updateTouchAction();
   };
 
-  // ===== 드래그 시작: 시트 어디에서나 가능 =====
+  // 드래그 시작: 시트 어디에서나 가능
   const onAnyPointerDown = (e: React.PointerEvent) => {
-    dragging.current = true;
+    const tag = (e.target as HTMLElement).tagName;
+    if (/^(INPUT|SELECT|TEXTAREA|BUTTON|A)$/i.test(tag)) return;
     movedRef.current = false;
     verticalOnlyRef.current = false;
-    onDraggingChange?.(true);
     startY.current = e.clientY;
     startX.current = e.clientX;
     lastY.current = e.clientY;
     initRatioRef.current = ratio;
-    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
   };
 
   const onAnyPointerMove = (e: React.PointerEvent) => {
-    if (!dragging.current) return;
-
+    if (startY.current === 0 && startX.current === 0) return;
     const dy = e.clientY - startY.current;
     const dx = e.clientX - startX.current;
 
-    // 수평 제스처 무시: |dx| > |dy| 이면 드래그 취소 (클릭 그대로 통과)
+    // 수평 제스처 → 취소
     if (!verticalOnlyRef.current) {
       if (Math.abs(dx) > Math.abs(dy)) {
-        dragging.current = false;
-        onDraggingChange?.(false);
+        const el = e.currentTarget as HTMLElement;
+        if (el.hasPointerCapture?.(e.pointerId)) el.releasePointerCapture(e.pointerId);
+        startY.current = 0;
+        startX.current = 0;
         return;
       } else {
         verticalOnlyRef.current = true;
       }
     }
 
-    if (!movedRef.current && Math.abs(dy) > DRAG_THRESHOLD_PX) movedRef.current = true;
+    // 임계값 전 → 클릭 후보: 아무것도 막지 않음
+    if (!movedRef.current && Math.abs(dy) < DRAG_THRESHOLD_PX) {
+      lastY.current = e.clientY;
+      return;
+    }
 
-    // ✅ 프레임 기준 이동량을 lastY 갱신 전에 계산해야 함!
+    // 임계값 돌파 순간 → 드래그 시작
+    if (!movedRef.current) {
+      movedRef.current = true;
+      dragging.current = true;
+      onDraggingChange?.(true);
+      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+      updateTouchAction(); // 드래그 시작 시점 동기화
+    }
+
+    // 드래그 중: 기본 제스처 차단
+    e.preventDefault();
+
     const frameDy = e.clientY - lastY.current;
 
-    // (1) 중간 상태: 어디서든 시트 드래그
+    // 시트가 최대 미만 → 항상 시트 높이 변경
     if (ratio < MAX - snapEpsilon) {
-      e.preventDefault();              // 콘텐츠 스크롤/브라우저 제스처 차단
-      setSheetByDeltaY(dy);            // dy는 시작점 대비 누적 이동
-      lastY.current = e.clientY;       // ← 마지막에 갱신
+      setSheetByDeltaY(dy);
+      lastY.current = e.clientY;
       return;
     }
 
-    // (2) MAX 상태: 기본은 내부 스크롤
+    // 최대 상태: 내부 스크롤 우선. 다만 맨 위에서 아래로 당기면 시트 축소로 핸드오프
     const el = contentRef.current;
-    if (!el) {
-      lastY.current = e.clientY;
-      return;
-    }
+    if (!el) { lastY.current = e.clientY; return; }
 
-    // 스크롤이 최상단이고, "아래"로 드래그하는 프레임이면 → 시트 축소로 핸드오프
     if (el.scrollTop <= 0 && frameDy > 0) {
-      e.preventDefault();
-      el.style.overflow = "hidden";    // 콘텐츠 스크롤 잠시 꺼두고
-      setSheetByDeltaY(dy);            // 시트 드래그로 전환
+      el.style.overflow = "hidden";
+      setSheetByDeltaY(dy);
+      updateTouchAction(); // 핸드오프 시점 동기화
       lastY.current = e.clientY;
       return;
     }
 
-    // 그 외엔 내부 스크롤 유지 (시트 높이 고정)
+    // 그 외엔 내부 스크롤 유지
     lastY.current = e.clientY;
   };
 
-  // ===== 드래그 종료: 스냅/정리 =====
-  const onAnyPointerUp = () => {
-    if (!dragging.current) return;
+  // 드래그 종료: 스냅/정리
+  const onAnyPointerUp = (e?: React.PointerEvent) => {
+    // 캡처 해제
+    if (e && (e.currentTarget as HTMLElement).hasPointerCapture?.(e.pointerId)) {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    }
+
+    const didDrag = movedRef.current;
+    const draggedDown = (lastY.current - startY.current) > DRAG_THRESHOLD_PX;
+
+    // 세션 리셋은 계산 후
+    movedRef.current = false;
+    verticalOnlyRef.current = false;
+    startY.current = 0;
+    startX.current = 0;
+
+    if (!didDrag) return; // 클릭은 통과
+
+    // 드래그 종료 처리
     dragging.current = false;
     onDraggingChange?.(false);
 
-    const draggedDown = (lastY.current - startY.current) > DRAG_THRESHOLD_PX;
     const collapseThreshold = Math.max(MIN + 0.005, COLLAPSE_ABS_THRESHOLD);
 
     if (draggedDown && ratio <= collapseThreshold) {
       if (allowDismiss && ratio <= MIN - 1e-6 + snapEpsilon) {
         onOpenChange(false);
+        updateTouchAction();
         return;
       }
       setRatio(MIN);
       if (contentRef.current) contentRef.current.style.overflow = "hidden";
+      updateTouchAction();
       return;
     }
 
@@ -174,6 +221,12 @@ export default function BottomSheet({
       setRatio(MAX);
       if (contentRef.current) contentRef.current.style.overflow = "auto";
     }
+    updateTouchAction(); // 종료 후 최종 상태 반영
+  };
+
+  // 콘텐츠 스크롤 시 touch-action 재평가
+  const onContentScroll = () => {
+    updateTouchAction();
   };
 
   if (!mounted) return null;
@@ -223,16 +276,14 @@ export default function BottomSheet({
           style={{
             overflow: ratio >= MAX - snapEpsilon ? "auto" : "hidden",
             overscrollBehavior: "contain",
-            // 모바일 제스처 간섭 방지: 시트 전체를 수직 제스처 우선으로
-            touchAction: "none",
+            // touchAction은 JS로 동적 전환 (updateTouchAction)
           }}
-          // “어디서든” 드래그 시작
+          onScroll={onContentScroll}
           onPointerDown={onAnyPointerDown}
           onPointerMove={onAnyPointerMove}
           onPointerUp={onAnyPointerUp}
           onPointerCancel={onAnyPointerUp}
           onPointerLeave={() => { if (dragging.current) onAnyPointerUp(); }}
-          // 드래그가 있었다면 그 세션의 클릭(탭)은 무시 → 유령 클릭 방지
           onClickCapture={(e) => {
             if (movedRef.current) {
               e.preventDefault();
