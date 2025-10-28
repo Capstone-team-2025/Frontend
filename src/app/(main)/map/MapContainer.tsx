@@ -1,4 +1,3 @@
-// C:\Users\User\Desktop\capstonepj\mapnefit\src\app\(main)\map\MapContainer.tsx
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -7,7 +6,12 @@ import KakaoMap from "./KakaoMap";
 import BottomSheet from "./BottomSheet/BottomSheet";
 import StoreBottomSheet from "./BottomSheet/StoreBottomSheet";
 import { fetchNearbyByStore, type Place } from "@/services/places";
-import { fetchFavorites, addFavorite, removeFavorite, type FavoriteItem, } from "@/services/favorites";
+import {
+  fetchFavorites,
+  addFavorite,
+  removeFavorite,
+  type FavoriteItem,
+} from "@/services/favorites";
 
 type StoreLite = {
   storeId?: number;
@@ -17,6 +21,15 @@ type StoreLite = {
 };
 
 const BAEKSEOK_UNIV = { lat: 36.8398, lng: 127.1849 };
+
+function getErrorMessage(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === "object" && e && "message" in e) {
+    const m = (e as { message?: unknown }).message;
+    if (typeof m === "string") return m;
+  }
+  return String(e);
+}
 
 export default function MapContainer({
   initialKeyword,
@@ -38,15 +51,21 @@ export default function MapContainer({
   const [sheetDragging, setSheetDragging] = useState(false);
 
   const GAP = 4;
-  const effectiveOffset = sheetOpen ? (sheetHeight + GAP) : 0;
+  const effectiveOffset = sheetOpen ? sheetHeight + GAP : 0;
   const baseBottomPx = 100;
   const [selectedStore, setSelectedStore] = useState<StoreLite | null>(
     initialSheetOpen
-      ? { name: initialName || initialKeyword || "", category: initialCategory, storeId: initialStoreId }
+      ? {
+          name: initialName || initialKeyword || "",
+          category: initialCategory,
+          storeId: initialStoreId,
+        }
       : null
   );
 
-  const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
+  const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(
+    null
+  );
   const [places, setPlaces] = useState<Place[] | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
 
@@ -59,7 +78,8 @@ export default function MapContainer({
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      (pos) => setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      (pos) =>
+        setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
       () => setUserPos(BAEKSEOK_UNIV),
       { enableHighAccuracy: true, timeout: 8000 }
     );
@@ -71,7 +91,11 @@ export default function MapContainer({
       if (!userPos || !initialStoreId) return;
       setPlaces(null);
       try {
-        const { data } = await fetchNearbyByStore(initialStoreId, userPos.lat, userPos.lng);
+        const { data } = await fetchNearbyByStore(
+          initialStoreId,
+          userPos.lat,
+          userPos.lng
+        );
         if (!alive) return;
         setPlaces(data ?? []);
         setSheetOpen(true);
@@ -81,7 +105,9 @@ export default function MapContainer({
         if (alive) setPlaces([]);
       }
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [initialStoreId, userPos]);
 
   // 즐겨찾기 초기 로드
@@ -96,7 +122,9 @@ export default function MapContainer({
         if (alive) setFavorites([]);
       }
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, []);
 
   // placeId Set (버튼 active 판별용)
@@ -153,9 +181,10 @@ export default function MapContainer({
       } else {
         await removeFavorite(placeIdNum);
       }
-    } catch (err: any) {
-      // 예외 처리
-      if (err?.message === "DUPLICATED_FAVORITE") {
+    } catch (err) {
+      const msg = getErrorMessage(err);
+
+      if (msg === "DUPLICATED_FAVORITE") {
         return;
       }
       setFavorites((prev) => {
@@ -193,7 +222,7 @@ export default function MapContainer({
     [selectedPlace, userPos]
   );
 
-  const onViewOnMap = (_: StoreLite) => {
+  const onViewOnMap = () => {
     setSheetOpen(false);
   };
 
