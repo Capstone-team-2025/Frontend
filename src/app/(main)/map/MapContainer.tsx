@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import KakaoMap from "./KakaoMap";
 import BottomSheet from "./BottomSheet/BottomSheet";
 import StoreBottomSheet from "./BottomSheet/StoreBottomSheet";
+import PlaceDetailSheet from "./BottomSheet/PlaceDetailSheet";
 import MapOverlays from "./overlays/MapOverlays";
+import { useNearbyAll } from "./NearbyAllPlaces";
 import {
   fetchNearbyByStore,
   fetchNearbyByCategoryFlat,
@@ -26,7 +28,9 @@ type StoreLite = {
   div2Category?: string;
 };
 
-const BAEKSEOK_UNIV = { lat: 36.8398, lng: 127.1849 };
+type LatLng = { lat: number; lng: number };
+
+const BAEKSEOK_UNIV: LatLng = { lat: 36.8398, lng: 127.1849 };
 
 const CATEGORY_LABEL: Record<CategoryKey, string> = {
   food: "식음료",
@@ -60,23 +64,37 @@ export default function MapContainer({
   initialStoreId?: number;
 }) {
   const router = useRouter();
+  const anchorRef = useRef<HTMLDivElement | null>(null);
+
+  const {
+    center: nearbyCenter,
+    loading: nearbyLoading,
+    error: nearbyError,
+    flat: nearbyAllFlat,
+    reload: reloadNearby,
+  } = useNearbyAll();
 
   const [sheetOpen, setSheetOpen] = useState(initialSheetOpen);
-  const [, setSheetDragging] = useState(false);
+  const [sheetDragging, setSheetDragging] = useState(false);
 
   const selectedStore: StoreLite | null = useMemo(
     () =>
       initialSheetOpen
         ? {
-            name: initialName || initialKeyword || "",
-            category: initialCategory,
-            storeId: initialStoreId,
-          }
+          name: initialName || initialKeyword || "",
+          category: initialCategory,
+          storeId: initialStoreId,
+        }
         : null,
     [initialSheetOpen, initialName, initialKeyword, initialCategory, initialStoreId]
   );
 
-  const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
+  const [userPos, setUserPos] = useState<LatLng | null>(null);
+
+  useEffect(() => {
+    if (!userPos && nearbyCenter) setUserPos(nearbyCenter);
+  }, [nearbyCenter, userPos]);
+
   const [places, setPlaces] = useState<Place[] | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [favorites, setFavorites] = useState<FavoriteItem[] | null>(null);
@@ -86,17 +104,11 @@ export default function MapContainer({
   );
   const [selectedCategory, setSelectedCategory] = useState<CategoryKey | null>(null);
 
-  useEffect(() => {
-    if (!("geolocation" in navigator)) {
-      setUserPos(BAEKSEOK_UNIV);
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => setUserPos(BAEKSEOK_UNIV),
-      { enableHighAccuracy: true, timeout: 8000 }
-    );
-  }, []);
+  const [manualCenter, setManualCenter] = useState<LatLng | null>(null);
+
+  const [sheetMode, setSheetMode] = useState<"list" | "detail">(
+    initialStoreId ? "list" : "detail"
+  );
 
   useEffect(() => {
     let alive = true;
@@ -109,7 +121,8 @@ export default function MapContainer({
         setPlaces(data ?? []);
         setMode("brand");
         setSheetOpen(true);
-        if (data?.[0]) setSelectedPlace(data[0]);
+        setSheetMode("list");
+        setSelectedPlace(null);
       } catch (e) {
         console.error(e);
         if (alive) setPlaces([]);
@@ -120,7 +133,6 @@ export default function MapContainer({
     };
   }, [initialStoreId, userPos]);
 
-  // 즐겨찾기 초기 로드
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -137,13 +149,11 @@ export default function MapContainer({
     };
   }, []);
 
-  // placeId Set (버튼 active 판별용)
   const favoritePlaceIds = useMemo(() => {
     if (!favorites) return new Set<string>();
     return new Set(favorites.map((f) => String(f.placeId)));
   }, [favorites]);
 
-  // MapOverlays 카테고리 선택 변경 핸들러
   async function handleCategoryChange(ids: string[]) {
     const key = ids[0] as CategoryKey | undefined;
     if (!key) {
@@ -152,6 +162,7 @@ export default function MapContainer({
       setSelectedPlace(null);
       setPlaces([]);
       setSheetOpen(false);
+      setSheetMode("detail");
       return;
     }
     if (!userPos) return;
@@ -162,10 +173,9 @@ export default function MapContainer({
       setSelectedCategory(key);
       setMode("category");
       setPlaces(data);
-      if (data[0]) {
-        setSelectedPlace(data[0]);
-        setSheetOpen(true);
-      }
+      setSheetMode("list");
+      setSelectedPlace(null);
+      setSheetOpen(true);
     } catch (e) {
       console.error("카테고리 검색 실패:", getErrorMessage(e));
       setPlaces([]);
@@ -174,7 +184,6 @@ export default function MapContainer({
     }
   }
 
-  // 즐겨찾기 토글
   async function onToggleFavoritePlace(p: Place, next: boolean) {
     const placeIdNum = Number(p.placeId);
     if (!Number.isFinite(placeIdNum)) {
@@ -251,8 +260,17 @@ export default function MapContainer({
     () =>
       selectedPlace
         ? { lat: selectedPlace.latitude, lng: selectedPlace.longitude }
-        : userPos ?? BAEKSEOK_UNIV,
-    [selectedPlace, userPos]
+        : (manualCenter ?? nearbyCenter ?? BAEKSEOK_UNIV),
+    [selectedPlace, manualCenter, nearbyCenter]
+  );
+
+  useEffect(() => {
+    if (selectedPlace) setManualCenter(null);
+  }, [selectedPlace]);
+
+  const nearbyPlaces: Place[] = useMemo(
+    () => nearbyAllFlat.map(({ brandColor, ...rest }) => rest),
+    [nearbyAllFlat]
   );
 
   const onViewOnMap = () => setSheetOpen(false);
@@ -262,7 +280,7 @@ export default function MapContainer({
     (mode === "category" && (places?.length ?? 0) > 0);
 
   return (
-    <div className="w-full h-full relative">
+    <div ref={anchorRef} className="w-full h-full relative">
       <MapOverlays onCategoryChange={handleCategoryChange} />
 
       {categoryLoading && (
@@ -271,17 +289,44 @@ export default function MapContainer({
         </div>
       )}
 
+      {mode === null && nearbyLoading && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 text-xs bg-black/70 text-white px-2 py-1 rounded">
+          주변 할인 매장 불러오는 중…
+        </div>
+      )}
+      {mode === null && nearbyError && (
+        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-20 text-xs bg-red-600/80 text-white px-2 py-1 rounded">
+          {nearbyError}
+        </div>
+      )}
+
       <KakaoMap
         height="100%"
         center={mapCenter}
-        markers={places ?? []}
+        markers={(mode === "brand" || mode === "category") ? (places ?? []) : nearbyPlaces}
+        draggable={!sheetDragging}
         onMarkerClick={(p: Place) => {
           setSelectedPlace(p);
+          setSheetMode("detail");
           setSheetOpen(true);
+        }}
+        onMapClick={() => {
+          if (mode === null) {
+            setSelectedPlace(null);
+            setSheetOpen(false);
+            setSheetMode("detail");
+          }
+        }}
+        onCenterChange={(c) => {
+          setManualCenter(c);
+          setUserPos(c);
+          if (mode === null) {
+            reloadNearby({ center: c });
+          }
         }}
         myLocationBottomOffset={0}
         myLocationBaseBottomPx={100}
-        myLocationDragging={false}
+        myLocationDragging={sheetDragging}
       />
 
       <BottomSheet
@@ -293,12 +338,22 @@ export default function MapContainer({
         defaultRatio={0.5}
         fullRatio={0.66}
         onDraggingChange={setSheetDragging}
+        anchorRef={anchorRef}
       >
-        {showList ? (
+        {sheetMode === "detail" && selectedPlace ? (
+          <PlaceDetailSheet
+            place={selectedPlace}
+            onBackToList={
+              (mode === "brand" || mode === "category") && (places?.length ?? 0) > 0
+                ? () => setSheetMode("list")
+                : undefined
+            }
+            favoritePlaceIds={favoritePlaceIds}
+            onToggleFavoritePlace={onToggleFavoritePlace}
+          />
+        ) : showList ? (
           <StoreBottomSheet
             store={{
-              // brand 모드: 기존 스토어 정보
-              // category 모드: 카테고리 이름으로 타이틀 구성
               storeId: mode === "brand" ? initialStoreId : undefined,
               name:
                 mode === "brand"
@@ -311,6 +366,7 @@ export default function MapContainer({
             selected={selectedPlace ?? undefined}
             onSelect={(p: Place) => {
               setSelectedPlace(p);
+              setSheetMode("detail");
               const qs = new URLSearchParams({
                 placeId: String(p.placeId ?? ""),
                 name: p.placeName ?? "",

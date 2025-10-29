@@ -8,6 +8,7 @@ import MyLocationButton from "./overlays/MyLocationButton";
 import type { Place } from "@/services/places";
 
 type LatLng = { lat: number; lng: number };
+
 type KakaoMapsMinimal = {
   load: (cb: () => void) => void;
   LatLng: new (lat: number, lng: number) => unknown;
@@ -18,103 +19,57 @@ type KakaoWindow = Window & { kakao?: KakaoNS };
 type KakaoMapInstance = {
   setCenter: (latlng: unknown) => void;
   panTo?: (latlng: unknown) => void;
+  getCenter: () => { getLat(): number; getLng(): number };
 };
 
 type Props = {
-  center?: LatLng;
+  center: LatLng;
   height?: number | string;
   showMyLocationButton?: boolean;
   markers?: Place[];
   onMarkerClick?: (p: Place) => void;
-  autoLocateOnReady?: boolean;
+  onCenterChange?: (c: LatLng) => void;
   myLocationBottomOffset?: number;
   myLocationBaseBottomPx?: number;
   myLocationDragging?: boolean;
+  onMapClick?: () => void;
+  draggable?: boolean;
 };
 
-const BAEKSEOK_UNIV: LatLng = { lat: 36.8398, lng: 127.1849 };
-
 export default function KakaoMap({
-  center = BAEKSEOK_UNIV,
+  center,
   height = "100%",
   showMyLocationButton = true,
   markers = [],
   onMarkerClick,
-  autoLocateOnReady = true,
+  onCenterChange,
   myLocationBottomOffset = 0,
   myLocationBaseBottomPx = 100,
   myLocationDragging = false,
+  onMapClick,
+  draggable = true,
 }: Props) {
   const [ready, setReady] = useState(false);
-  const [mapCenter, setMapCenter] = useState<LatLng>(center);
   const [userLocation, setUserLocation] = useState<LatLng | null>(null);
   const [accuracy, setAccuracy] = useState<number | null>(null);
+
   const mapRef = useRef<KakaoMapInstance | null>(null);
   const watchIdRef = useRef<number | null>(null);
-  const firstLocateDoneRef = useRef(false);
+  const firstFixAppliedRef = useRef(false);
 
-  // Kakao SDK 로딩 상태 확인
   useEffect(() => {
     if (typeof window === "undefined") return;
     const w = window as KakaoWindow;
-    if (w.kakao && w.kakao.maps) setReady(true);
+    if (w.kakao?.maps) setReady(true);
   }, []);
 
   useEffect(() => {
-    setMapCenter(center);
     const w = window as KakaoWindow;
     const LatLngCtor = w.kakao?.maps?.LatLng;
-    if (mapRef.current && LatLngCtor) {
-      const latlng = new LatLngCtor(center.lat, center.lng);
-      mapRef.current.setCenter(latlng);
-    }
+    if (!mapRef.current || !LatLngCtor || !center) return;
+    const latlng = new LatLngCtor(center.lat, center.lng);
+    mapRef.current.setCenter(latlng);
   }, [center]);
-
-  const locateOnceAndMaybeCenter = (smooth = false, alsoCenterCamera = true) => {
-    if (!("geolocation" in navigator)) {
-      if (alsoCenterCamera) setMapCenter(BAEKSEOK_UNIV);
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude, accuracy } = pos.coords;
-        const next = { lat: latitude, lng: longitude };
-        setUserLocation(next);
-        setAccuracy(Math.round(accuracy));
-
-        if (alsoCenterCamera) {
-          setMapCenter(next);
-          const w = window as KakaoWindow;
-          const LatLngCtor = w.kakao?.maps?.LatLng;
-          if (mapRef.current && LatLngCtor) {
-            const latlng = new LatLngCtor(next.lat, next.lng);
-            if (smooth && mapRef.current.panTo) mapRef.current.panTo(latlng);
-            else mapRef.current.setCenter(latlng);
-          }
-        }
-      },
-      () => {
-        if (alsoCenterCamera) {
-          setMapCenter(BAEKSEOK_UNIV);
-          const w = window as KakaoWindow;
-          const LatLngCtor = w.kakao?.maps?.LatLng;
-          if (mapRef.current && LatLngCtor) {
-            const latlng = new LatLngCtor(BAEKSEOK_UNIV.lat, BAEKSEOK_UNIV.lng);
-            mapRef.current.setCenter(latlng);
-          }
-        }
-      },
-      { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
-    );
-  };
-
-  useEffect(() => {
-    if (!ready) return;
-    if (!firstLocateDoneRef.current && autoLocateOnReady) {
-      firstLocateDoneRef.current = true;
-      locateOnceAndMaybeCenter(false, true);
-    }
-  }, [ready, autoLocateOnReady]);
 
   useEffect(() => {
     if (!ready || !("geolocation" in navigator)) return;
@@ -140,14 +95,30 @@ export default function KakaoMap({
     };
   }, [ready]);
 
+  useEffect(() => {
+    if (!ready || !userLocation || firstFixAppliedRef.current) return;
+    firstFixAppliedRef.current = true;
+
+    const w = window as KakaoWindow;
+    const LatLngCtor = w.kakao?.maps?.LatLng;
+    if (mapRef.current && LatLngCtor) {
+      const latlng = new LatLngCtor(userLocation.lat, userLocation.lng);
+      if (typeof mapRef.current.panTo === "function") {
+        mapRef.current.panTo(latlng);
+      } else {
+        mapRef.current.setCenter(latlng);
+      }
+    }
+    onCenterChange?.(userLocation);
+  }, [ready, userLocation, onCenterChange]);
+
   const recenterToUser = () => {
     const w = window as KakaoWindow;
     const LatLngCtor = w.kakao?.maps?.LatLng;
     if (userLocation && mapRef.current && LatLngCtor) {
-      setMapCenter(userLocation);
-      mapRef.current.panTo?.(new LatLngCtor(userLocation.lat, userLocation.lng));
-    } else {
-      locateOnceAndMaybeCenter(true, true);
+      const latlng = new LatLngCtor(userLocation.lat, userLocation.lng);
+      mapRef.current.panTo?.(latlng);
+      onCenterChange?.(userLocation);
     }
   };
 
@@ -167,14 +138,22 @@ export default function KakaoMap({
       {ready ? (
         <>
           <Map
-            center={mapCenter}
+            center={center}
             level={4}
             style={{ width: "100%", height: "100%" }}
+            draggable={draggable}
             onCreate={(map) => {
               mapRef.current = map as unknown as KakaoMapInstance;
             }}
+            onDragEnd={(target) => {
+              const map = target as unknown as KakaoMapInstance;
+              const c = map.getCenter();
+              onCenterChange?.({ lat: c.getLat(), lng: c.getLng() });
+            }}
+            onClick={() => {
+              onMapClick?.();
+            }}
           >
-            {/* 내 위치 정보 허용: 내 위치 마커 표시 */}
             {userLocation && (
               <UserLocationRadius
                 center={userLocation}
@@ -182,16 +161,6 @@ export default function KakaoMap({
                 showCircle={false}
                 showMarker={true}
                 markerSize={{ width: 28, height: 34 }}
-              />
-            )}
-            
-            {/* 내 위치 정보 거부: 내 위치 마커 숨기기 */}
-            {!userLocation && (
-              <UserLocationRadius
-                center={mapCenter}
-                radiusMeters={500}
-                showCircle={false}
-                showMarker={false}
               />
             )}
 
@@ -203,14 +172,15 @@ export default function KakaoMap({
               />
             ))}
           </Map>
-          
+
           {showMyLocationButton && (
-            <MyLocationButton 
-              onClick={recenterToUser} 
+            <MyLocationButton
+              onClick={recenterToUser}
               bottomOffset={myLocationBottomOffset}
               baseBottomPx={myLocationBaseBottomPx}
               dragging={myLocationDragging}
-            />)}
+            />
+          )}
         </>
       ) : (
         <div>지도를 불러오는 중...</div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import clsx from "clsx";
 
@@ -14,9 +14,9 @@ type Props = {
   defaultRatio?: number;
   className?: string;
   children: React.ReactNode;
-
   onVisibleHeightChange?: (px: number) => void;
   onDraggingChange?: (dragging: boolean) => void;
+  anchorRef?: React.RefObject<HTMLDivElement | null>;
 };
 
 export default function BottomSheet({
@@ -31,11 +31,13 @@ export default function BottomSheet({
   children,
   onVisibleHeightChange,
   onDraggingChange,
+  anchorRef,
 }: Props) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
   const vh = typeof window !== "undefined" ? window.innerHeight : 0;
+
   const COLLAPSE_ABS_THRESHOLD = 0.2;
 
   const [MIN, MAX] = useMemo(() => {
@@ -45,8 +47,9 @@ export default function BottomSheet({
   }, [peekHeightPx, fullRatio, vh]);
 
   const [ratio, setRatio] = useState<number>(clamp(defaultRatio ?? MIN, MIN, MAX));
+  const ratioRef = useRef(ratio);
+  useEffect(() => { ratioRef.current = ratio; }, [ratio]);
 
-  // 드래그/제스처 상태
   const dragging = useRef(false);
   const movedRef = useRef(false);
   const startY = useRef(0);
@@ -57,49 +60,27 @@ export default function BottomSheet({
 
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // touch-action 동적 전환
-  const allowDragAnywhereRef = useRef(true);
-  const updateTouchAction = useCallback(() => {
-    const el = contentRef.current;
-    if (!el) return;
-    const atMax = ratio >= MAX - snapEpsilon;
-    const atTop = el.scrollTop <= 0;
-    const allowDrag = !atMax || atTop;
-    allowDragAnywhereRef.current = allowDrag;
-    el.style.touchAction = allowDrag ? "none" : "pan-y";
-  }, [ratio, MAX, snapEpsilon]);
-
-  // 콜백: 가시 높이 픽셀
   useEffect(() => {
     if (!mounted || !onVisibleHeightChange) return;
-    const px = open ? Math.round(ratio * vh) : 0;
+    const px = open ? Math.round(ratioRef.current * vh) : 0;
     onVisibleHeightChange(px);
-  }, [mounted, open, ratio, vh, onVisibleHeightChange]);
+  }, [mounted, open, vh, onVisibleHeightChange]);
 
-  // open/ratio 바뀔 때 touch-action 동기화
   useEffect(() => {
     if (!open) return;
-    updateTouchAction();
-  }, [open, updateTouchAction]);
-
-  // open 변경 시 초기화
-  useEffect(() => {
-    if (!open) return;
-    const r = clamp(defaultRatio ?? ratio ?? MIN, MIN, MAX);
-
-    if (Math.abs(r - ratio) > 1e-6) {
-      setRatio(r);
-    }
+    const r = clamp(defaultRatio ?? ratioRef.current ?? MIN, MIN, MAX);
+    setRatio(r);
+    ratioRef.current = r;
     initRatioRef.current = r;
-
     if (contentRef.current) {
       contentRef.current.style.overflow = r >= MAX - snapEpsilon ? "auto" : "hidden";
     }
-  }, [open, defaultRatio, ratio, MIN, MAX, snapEpsilon]);
+    dragging.current = false;
+    movedRef.current = false;
+    verticalOnlyRef.current = false;
+    onDraggingChange?.(false);
+  }, [open]);
 
-  const DRAG_THRESHOLD_PX = 6;
-
-  // 공통: 시트 높이 갱신
   const setSheetByDeltaY = (dy: number) => {
     const delta = -(dy / Math.max(1, vh));
     const next = clamp(initRatioRef.current + delta, MIN, MAX);
@@ -108,180 +89,186 @@ export default function BottomSheet({
       contentRef.current.style.overflow = next >= MAX - snapEpsilon ? "auto" : "hidden";
     }
     setRatio(next);
-    // 높이 바뀌면 제스처 라우팅 재결정
-    updateTouchAction();
+    ratioRef.current = next;
   };
 
-  // 드래그 시작: 시트 어디에서나 가능
+  const DRAG_THRESHOLD_PX = 6;
+
   const onAnyPointerDown = (e: React.PointerEvent) => {
-    const tag = (e.target as HTMLElement).tagName;
-    if (/^(INPUT|SELECT|TEXTAREA|BUTTON|A)$/i.test(tag)) return;
+    if (!open) return;
+
+    dragging.current = true;
     movedRef.current = false;
     verticalOnlyRef.current = false;
+    onDraggingChange?.(true);
+
     startY.current = e.clientY;
     startX.current = e.clientX;
     lastY.current = e.clientY;
-    initRatioRef.current = ratio;
+    initRatioRef.current = ratioRef.current;
+
+    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
   };
 
   const onAnyPointerMove = (e: React.PointerEvent) => {
-    if (startY.current === 0 && startX.current === 0) return;
+    if (!dragging.current) return;
+
     const dy = e.clientY - startY.current;
     const dx = e.clientX - startX.current;
 
-    // 수평 제스처 → 취소
     if (!verticalOnlyRef.current) {
       if (Math.abs(dx) > Math.abs(dy)) {
-        const el = e.currentTarget as HTMLElement;
-        if (el.hasPointerCapture?.(e.pointerId)) el.releasePointerCapture(e.pointerId);
-        startY.current = 0;
-        startX.current = 0;
+        dragging.current = false;
+        onDraggingChange?.(false);
         return;
       } else {
         verticalOnlyRef.current = true;
       }
     }
 
-    // 임계값 전 → 클릭 후보: 아무것도 막지 않음
-    if (!movedRef.current && Math.abs(dy) < DRAG_THRESHOLD_PX) {
-      lastY.current = e.clientY;
-      return;
-    }
-
-    // 임계값 돌파 순간 → 드래그 시작
-    if (!movedRef.current) {
-      movedRef.current = true;
-      dragging.current = true;
-      onDraggingChange?.(true);
-      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
-      updateTouchAction(); // 드래그 시작 시점 동기화
-    }
-
-    // 드래그 중: 기본 제스처 차단
-    e.preventDefault();
-
     const frameDy = e.clientY - lastY.current;
 
-    // 시트가 최대 미만 → 항상 시트 높이 변경
-    if (ratio < MAX - snapEpsilon) {
+    const nextProbe = clamp(initRatioRef.current - (dy / Math.max(1, vh)), MIN, MAX);
+
+    if (nextProbe < MAX - snapEpsilon) {
+      e.preventDefault();
       setSheetByDeltaY(dy);
       lastY.current = e.clientY;
+      if (!movedRef.current && Math.abs(dy) > DRAG_THRESHOLD_PX) movedRef.current = true;
       return;
     }
 
-    // 최대 상태: 내부 스크롤 우선. 다만 맨 위에서 아래로 당기면 시트 축소로 핸드오프
     const el = contentRef.current;
     if (!el) { lastY.current = e.clientY; return; }
 
     if (el.scrollTop <= 0 && frameDy > 0) {
+      e.preventDefault();
       el.style.overflow = "hidden";
       setSheetByDeltaY(dy);
-      updateTouchAction(); // 핸드오프 시점 동기화
       lastY.current = e.clientY;
+      if (!movedRef.current && Math.abs(dy) > DRAG_THRESHOLD_PX) movedRef.current = true;
       return;
     }
-
-    // 그 외엔 내부 스크롤 유지
     lastY.current = e.clientY;
   };
 
-  // 드래그 종료: 스냅/정리
-  const onAnyPointerUp = (e?: React.PointerEvent) => {
-    // 캡처 해제
-    if (e && (e.currentTarget as HTMLElement).hasPointerCapture?.(e.pointerId)) {
-      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-    }
+  const onAnyPointerUp = () => {
+    if (!dragging.current) return;
 
-    const didDrag = movedRef.current;
-    const draggedDown = (lastY.current - startY.current) > DRAG_THRESHOLD_PX;
-
-    // 세션 리셋은 계산 후
-    movedRef.current = false;
-    verticalOnlyRef.current = false;
-    startY.current = 0;
-    startX.current = 0;
-
-    if (!didDrag) return; // 클릭은 통과
-
-    // 드래그 종료 처리
     dragging.current = false;
     onDraggingChange?.(false);
 
+    const draggedDown = (lastY.current - startY.current) > DRAG_THRESHOLD_PX;
     const collapseThreshold = Math.max(MIN + 0.005, COLLAPSE_ABS_THRESHOLD);
 
-    if (draggedDown && ratio <= collapseThreshold) {
-      if (allowDismiss && ratio <= MIN - 1e-6 + snapEpsilon) {
+    if (draggedDown && ratioRef.current <= collapseThreshold) {
+      if (allowDismiss && ratioRef.current <= MIN - 1e-6 + snapEpsilon) {
         onOpenChange(false);
-        updateTouchAction();
         return;
       }
       setRatio(MIN);
+      ratioRef.current = MIN;
       if (contentRef.current) contentRef.current.style.overflow = "hidden";
-      updateTouchAction();
       return;
     }
 
-    if (ratio >= MAX - snapEpsilon) {
+    if (ratioRef.current >= MAX - snapEpsilon) {
       setRatio(MAX);
+      ratioRef.current = MAX;
       if (contentRef.current) contentRef.current.style.overflow = "auto";
+      return;
     }
-    updateTouchAction(); // 종료 후 최종 상태 반영
   };
 
-  // 콘텐츠 스크롤 시 touch-action 재평가
-  const onContentScroll = () => {
-    updateTouchAction();
+  const onHandleClick = () => {
+    const target = ratioRef.current >= MAX - snapEpsilon ? MIN : MAX;
+    setRatio(target);
+    ratioRef.current = target;
+    if (contentRef.current) {
+      contentRef.current.style.overflow = target >= MAX - snapEpsilon ? "auto" : "hidden";
+    }
   };
+
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
+  useEffect(() => {
+    if (!anchorRef?.current) {
+      setAnchorRect(null);
+      return;
+    }
+    const el = anchorRef.current;
+
+    const update = () => setAnchorRect(el.getBoundingClientRect());
+    update();
+
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update, { passive: true });
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [anchorRef]);
 
   if (!mounted) return null;
 
+  const fixedStyle = anchorRect
+    ? {
+        position: "fixed" as const,
+        left: `${Math.round(anchorRect.left + window.scrollX)}px`,
+        width: `${Math.round(anchorRect.width)}px`,
+        bottom: "0px",
+      }
+    : {
+        position: "fixed" as const,
+        left: 0,
+        right: 0,
+        bottom: 0,
+      };
+
   return createPortal(
     <div
-      role="dialog"
-      aria-modal="true"
-      className={clsx(
-        "fixed left-0 right-0 bottom-0 z-[3] pointer-events-none will-change-transform"
-      )}
+      className={clsx("z-[2] pointer-events-auto", className)}
       style={{
-        transform: open ? "translateY(0)" : "translateY(100%)",
-        transition: dragging.current ? "none" : "transform 220ms cubic-bezier(.2,.8,.2,1)",
+        WebkitTapHighlightColor: "transparent",
+        touchAction: "none",
+        ...fixedStyle,
       }}
     >
       <div
-        className={clsx(
-          "pointer-events-auto mx-auto w-full max-w-[425px] rounded-t-2xl bg-white shadow-xl",
-          "flex flex-col",
-          className
-        )}
+        className="mx-auto w-full max-w-[720px] bg-white rounded-t-2xl shadow-[0_-6px_24px_rgba(0,0,0,0.15)] flex flex-col"
         style={{
-          height: `calc(${ratio * 100}vh)`,
+          height: open ? Math.round(ratioRef.current * vh) : 0,
           transition: dragging.current ? "none" : "height 220ms cubic-bezier(.2,.8,.2,1)",
+          overflow: "hidden",
         }}
       >
-        {/* 시각용 핸들(드래그는 전체 영역에서 처리) */}
         <div
           className="relative w-full shrink-0"
-          style={{ height: 28, touchAction: "none" }}
+          style={{ height: 28, touchAction: "none", cursor: "grab" }}
           onPointerDown={onAnyPointerDown}
           onPointerMove={onAnyPointerMove}
           onPointerUp={onAnyPointerUp}
           onPointerCancel={onAnyPointerUp}
           onPointerLeave={() => { if (dragging.current) onAnyPointerUp(); }}
+          onClick={onHandleClick}
         >
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="h-1.5 w-12 rounded-full bg-neutral-300" />
           </div>
         </div>
 
-        {/* 전체 영역 드래그 + MAX에서 스크롤/핸드오프 */}
         <div
           ref={contentRef}
           className="flex-1 min-h-0"
           style={{
-            overflow: ratio >= MAX - snapEpsilon ? "auto" : "hidden",
+            overflow: ratioRef.current >= MAX - snapEpsilon ? "auto" : "hidden",
             overscrollBehavior: "contain",
+            touchAction: "none",
           }}
-          onScroll={onContentScroll}
           onPointerDown={onAnyPointerDown}
           onPointerMove={onAnyPointerMove}
           onPointerUp={onAnyPointerUp}
