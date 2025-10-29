@@ -26,7 +26,7 @@ export default function StoreBottomSheet({
   return (
     <div className="p-4 h-full flex flex-col">
       <div className="text-lg font-semibold shrink-0">{store.name}</div>
-      <div className="mt-4 flex-1 min-h-0 overflow-y-auto divide-y">
+      <div className="mt-4 flex-1 min-h-0 overflow-y-auto divide-y overscroll-contain pb-[calc(var(--tabbar-h,72px)+env(safe-area-inset-bottom))]">
         {places.length === 0 && <div className="py-10 text-center text-neutral-500">주변 2km 내 지점이 없습니다.</div>}
         {places.map((p) => (
           <div
