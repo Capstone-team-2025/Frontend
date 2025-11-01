@@ -3,23 +3,18 @@
 type Props = {
   onClick: () => void;
   className?: string;
-  mode?: "fixed" | "follow";
-  bottomOffset?: number;
-  baseBottomPx?: number;
+  bottomPx: number
   dragging?: boolean;
 };
 
-export default function MyLocationButton({ 
+export default function MyLocationButton({
   onClick,
   className,
-  mode = "fixed",
-  bottomOffset = 0,
-  baseBottomPx = 100,
+  bottomPx,
   dragging = false,
 }: Props) {
   const safe = "env(safe-area-inset-bottom, 0px)";
-  const extra = mode === "follow" ? bottomOffset : 0;
-  const bottom = `calc(${safe} + ${baseBottomPx + extra}px)`;
+  const bottom = `calc(${safe} + ${Math.max(0, Math.round(bottomPx))}px)`;
 
   return (
     <button

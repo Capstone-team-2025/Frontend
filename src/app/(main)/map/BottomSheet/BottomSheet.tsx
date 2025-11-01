@@ -79,7 +79,7 @@ export default function BottomSheet({
     movedRef.current = false;
     verticalOnlyRef.current = false;
     onDraggingChange?.(false);
-  }, [open]);
+  }, [open]); // reset on open
 
   const setSheetByDeltaY = (dy: number) => {
     const delta = -(dy / Math.max(1, vh));
@@ -96,6 +96,14 @@ export default function BottomSheet({
 
   const onAnyPointerDown = (e: React.PointerEvent) => {
     if (!open) return;
+    const t = e.target as Element;
+    if (t && t.closest?.("[data-nodrag]")) {
+      dragging.current = false;
+      movedRef.current = false;
+      verticalOnlyRef.current = false;
+      onDraggingChange?.(false);
+      return;
+    }
 
     dragging.current = true;
     movedRef.current = false;
@@ -106,8 +114,6 @@ export default function BottomSheet({
     startX.current = e.clientX;
     lastY.current = e.clientY;
     initRatioRef.current = ratioRef.current;
-
-    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
   };
 
   const onAnyPointerMove = (e: React.PointerEvent) => {
@@ -127,14 +133,17 @@ export default function BottomSheet({
     }
 
     const frameDy = e.clientY - lastY.current;
-
     const nextProbe = clamp(initRatioRef.current - (dy / Math.max(1, vh)), MIN, MAX);
+    const overThreshold = Math.abs(dy) > DRAG_THRESHOLD_PX;
 
     if (nextProbe < MAX - snapEpsilon) {
+      if (overThreshold) {
+        (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+      }
       e.preventDefault();
       setSheetByDeltaY(dy);
       lastY.current = e.clientY;
-      if (!movedRef.current && Math.abs(dy) > DRAG_THRESHOLD_PX) movedRef.current = true;
+      if (!movedRef.current && overThreshold) movedRef.current = true;
       return;
     }
 
@@ -142,11 +151,14 @@ export default function BottomSheet({
     if (!el) { lastY.current = e.clientY; return; }
 
     if (el.scrollTop <= 0 && frameDy > 0) {
+      if (overThreshold) {
+        (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+      }
       e.preventDefault();
       el.style.overflow = "hidden";
       setSheetByDeltaY(dy);
       lastY.current = e.clientY;
-      if (!movedRef.current && Math.abs(dy) > DRAG_THRESHOLD_PX) movedRef.current = true;
+      if (!movedRef.current && overThreshold) movedRef.current = true;
       return;
     }
     lastY.current = e.clientY;

@@ -1,7 +1,4 @@
-const BASE = process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
-if (!BASE) {
-  console.warn("[places.ts] NEXT_PUBLIC_BACKEND_URL is empty.");
-}
+import { getAccessToken } from "./auth";
 
 export type Place = {
   placeId: number;
@@ -34,16 +31,8 @@ export type NearbyByStoreResponse = {
   data: Place[];
 };
 
-// 카테고리 키
-export type CategoryKey =
-  | "food"
-  | "shop"
-  | "culture"
-  | "mobility"
-  | "life"
-  | "travel";
+export type CategoryKey = "food" | "shop" | "culture" | "mobility" | "life" | "travel";
 
-// 카테고리 응답(브랜드별 맵)
 export type NearbyByCategoryResponse = {
   success: boolean;
   message: string;
@@ -59,11 +48,7 @@ type FetchOpts = {
 
 function withTimeout(signal: AbortSignal | undefined, timeoutMs: number) {
   const ctrl = new AbortController();
-  const timer = setTimeout(
-    () => ctrl.abort(new DOMException("Timeout", "AbortError")),
-    timeoutMs
-  );
-
+  const timer = setTimeout(() => ctrl.abort(new DOMException("Timeout", "AbortError")), timeoutMs);
   if (signal) {
     signal.addEventListener(
       "abort",
@@ -75,16 +60,32 @@ function withTimeout(signal: AbortSignal | undefined, timeoutMs: number) {
       { once: true }
     );
   }
-
   return { signal: ctrl.signal, done: () => clearTimeout(timer) };
 }
 
-function toURL(path: string, params: Record<string, string | number | undefined>) {
-  const url = new URL(path, BASE);
-  Object.entries(params).forEach(([k, v]) => {
-    if (v !== undefined && v !== null && `${v}` !== "") url.searchParams.set(k, String(v));
+async function proxyGet<T>(path: string, params: Record<string, string | number>, init?: RequestInit) {
+  const qs = new URLSearchParams({ path, ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])) });
+  const token = getAccessToken();
+  const res = await fetch(`/api/proxy?${qs.toString()}`, {
+    cache: "no-store",
+    ...(init ?? {}),
+    headers: {
+      ...(init?.headers ?? {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
-  return url.toString();
+
+  // 개인화가 붙었는지 콘솔 디버깅용
+  if (process.env.NODE_ENV !== "production") {
+    console.debug("[proxy debug] auth:", res.headers.get("x-debug-proxy-auth")); // "present"|"absent"
+  }
+
+  if (!res.ok) {
+    const raw = await res.text().catch(() => "");
+    console.error(`[PROXY ${path}] ${res.status}`, raw);
+    throw new Error(`HTTP ${res.status}`);
+  }
+  return (await res.json()) as T;
 }
 
 // 특정 브랜드(storeId) 지점만 가져오기
@@ -96,10 +97,7 @@ export async function fetchNearbyByStore(
 ): Promise<NearbyByStoreResponse> {
   const { signal, done } = withTimeout(opts.signal, opts.timeoutMs ?? 10000);
   try {
-    const url = toURL("/api/places/nearby", { storeId, lat, lng });
-    const res = await fetch(url, { method: "GET", cache: "no-store", signal });
-    if (!res.ok) throw new Error(`HTTP ${res.status} /nearby`);
-    return (await res.json()) as NearbyByStoreResponse;
+    return await proxyGet<NearbyByStoreResponse>("/api/places/nearby", { storeId, lat, lng }, { signal });
   } finally {
     done();
   }
@@ -113,10 +111,7 @@ export async function fetchNearbyAll(
 ): Promise<NearbyAllResponse> {
   const { signal, done } = withTimeout(opts.signal, opts.timeoutMs ?? 15000);
   try {
-    const url = toURL("/api/places/nearby/all", { lat, lng });
-    const res = await fetch(url, { method: "GET", cache: "no-store", signal });
-    if (!res.ok) throw new Error(`HTTP ${res.status} /nearby/all`);
-    return (await res.json()) as NearbyAllResponse;
+    return await proxyGet<NearbyAllResponse>("/api/places/nearby/all", { lat, lng }, { signal });
   } finally {
     done();
   }
@@ -131,17 +126,13 @@ export async function fetchNearbyByCategory(
 ): Promise<NearbyByCategoryResponse> {
   const { signal, done } = withTimeout(opts.signal, opts.timeoutMs ?? 12000);
   try {
-    const url = toURL("/api/places/nearby/category", { lat, lng, category });
-    const res = await fetch(url, { method: "GET", cache: "no-store", signal });
-    if (!res.ok) throw new Error(`HTTP ${res.status} /nearby/category`);
-    const json = (await res.json()) as NearbyByCategoryResponse;
-    return json;
+    return await proxyGet<NearbyByCategoryResponse>("/api/places/nearby/category", { lat, lng, category }, { signal });
   } finally {
     done();
   }
 }
 
-// 카테고리별 주변 장소
+// 카테고리별 주변 장소 (flat)
 export async function fetchNearbyByCategoryFlat(
   lat: number,
   lng: number,

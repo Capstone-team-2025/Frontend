@@ -6,6 +6,7 @@ import FavoriteButton from "@/components/button/FavoriteButton";
 
 type Props = {
   place: Place;
+  onOpenDetail?: (p: Place) => void;
   onBackToList?: () => void;
   favoritePlaceIds?: Set<string>;
   onToggleFavoritePlace?: (p: Place, next: boolean) => Promise<void> | void;
@@ -13,7 +14,8 @@ type Props = {
 
 export default function PlaceDetailSheet({
   place,
-  onBackToList,
+  onOpenDetail,
+  onBackToList: _onBackToList,
   favoritePlaceIds,
   onToggleFavoritePlace,
 }: Props) {
@@ -24,7 +26,12 @@ export default function PlaceDetailSheet({
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-start justify-between">
-        <div>
+        <div
+          className="flex-1 min-w-0 cursor-pointer"
+          role="button"
+          aria-label="상세 페이지 이동"
+          onClick={() => onOpenDetail?.(place)}
+        >
           <h3 className="text-lg font-semibold leading-tight">{place.placeName}</h3>
           <div className="text-sm text-neutral-600">
             {place.roadAddressName || place.addressName}
