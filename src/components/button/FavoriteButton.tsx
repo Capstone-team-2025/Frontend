@@ -25,21 +25,24 @@ export default function FavoriteButton({
 
   useEffect(() => setChecked(active), [active]);
 
-  const toggle = useCallback(async (e?: React.MouseEvent) => {
-    if (stopPropagation && e) e.stopPropagation();
-    if (loading) return;
-    const next = !checked;
-    setChecked(next);
-    try {
-      setLoading(true);
-      await onChange?.(next);
-    } catch (err) {
-      setChecked(!next);
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, [checked, loading, onChange, stopPropagation]);
+  const toggle = useCallback(
+    async (e?: React.MouseEvent) => {
+      if (stopPropagation && e) e.stopPropagation();
+      if (loading) return;
+      const next = !checked;
+      setChecked(next);
+      try {
+        setLoading(true);
+        await onChange?.(next);
+      } catch (err) {
+        setChecked(!next);
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [checked, loading, onChange, stopPropagation]
+  );
 
   return (
     <button
@@ -55,8 +58,8 @@ export default function FavoriteButton({
         className
       )}
       style={{ width: size, height: size }}
+      data-nodrag
     >
-      {/* filled / outline heart (currentColor 사용) */}
       {checked ? (
         <svg viewBox="0 0 24 24" fill="currentColor" width={size} height={size}>
           <path d="M12 21s-6.716-4.31-9.293-7.09C.83 11.91 1.09 8.7 3.32 6.92a5.5 5.5 0 0 1 7.36.62l1.32 1.49 1.32-1.49a5.5 5.5 0 0 1 7.36-.62c2.23 1.78 2.49 4.99.61 6.99C18.716 16.69 12 21 12 21z" />
