@@ -38,29 +38,38 @@ export const SECOND_SET = new Set<string>(SECOND_CATEGORIES);
 
 // ------------------------------- 내부 유틸 -------------------------------
 function nonEmpty(v: unknown): string | undefined {
-  if (typeof v !== "string") return v == null ? undefined : String(v);
-  const t = v.trim();
-  return t ? t : undefined;
+  if (typeof v === "string") {
+    const t = v.trim();
+    return t ? t : undefined;
+  }
+  if (typeof v === "number" || typeof v === "boolean") {
+    return String(v);
+  }
+  return undefined;
 }
-function buildParams(params: Record<string, string | number | undefined> = {}) {
+
+type QueryParams = Record<string, string | number | boolean | undefined | null>;
+
+function buildParams(params: QueryParams = {}): Record<string, string> {
   const out: Record<string, string> = {};
-  Object.entries(params).forEach(([k, v]) => {
-    const nv = nonEmpty(v as any);
+  for (const [k, v] of Object.entries(params)) {
+    const nv = nonEmpty(v);
     if (nv !== undefined) out[k] = nv;
-  });
+  }
   return out;
 }
 
-async function getJson<T>(path: string, params: Record<string, string | number | undefined> = {}) {
+async function getJson<T>(path: string, params: QueryParams = {}): Promise<T> {
   const qs = new URLSearchParams({
     path,
     ...buildParams(params),
   });
 
-  const token = getAccessToken(); // 예: localStorage의 accessToken / auth_token 등
+  const token = getAccessToken();
+  const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
   const res = await fetch(`/api/proxy?${qs.toString()}`, {
     cache: "no-store",
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    headers,
   });
 
   if (!res.ok) {
@@ -68,7 +77,12 @@ async function getJson<T>(path: string, params: Record<string, string | number |
     console.error(`[PROXY ${path}] ${res.status}`, raw);
     throw new Error(`HTTP ${res.status}`);
   }
-  return (await res.json()) as T;
+
+  try {
+    return (await res.json()) as T;
+  } catch {
+    throw new Error("Invalid JSON response");
+  }
 }
 
 // ------------------------------- 공개 검색 API들 -------------------------------
@@ -140,18 +154,23 @@ export async function searchByCategoryCombined(category: string, div2Category: s
 }
 
 export async function fetchRecentStores(limit = 10): Promise<Store[]> {
-  const res = await getJson<Store[] | { stores: Store[] }>(
+  const res = await getJson<Store[] | { stores: Store } | { stores: Store[] }>(
     "/api/stores/recent",
     { limit }
   );
-  return Array.isArray(res) ? res : (res?.stores ?? []);
+  if (Array.isArray(res)) return res;
+  if (res && typeof res === "object") {
+    const maybe = (res as { stores?: unknown }).stores;
+    return Array.isArray(maybe) ? maybe : [];
+  }
+  return [];
 }
 
-export function isHangulConsonantOneChar(q: string) {
+export function isHangulConsonantOneChar(q: string): boolean {
   return /^[ㄱ-ㅎ]$/.test(q.trim());
 }
 
-export async function unifiedSearch(q: string, limit = 10) {
+export async function unifiedSearch(q: string, limit = 10): Promise<Store[]> {
   const raw = q.trim();
   if (!raw) return [];
   if (isHangulConsonantOneChar(raw)) return autocompleteByConsonant(raw, limit);
