@@ -122,6 +122,8 @@ export default function KakaoMap({
     }
   };
 
+  const bottomPx = (myLocationBottomOffset > 0 ? myLocationBottomOffset : myLocationBaseBottomPx) + 8;
+
   return (
     <div className="relative" style={{ width: "100%", height }}>
       {!ready && (
@@ -176,8 +178,7 @@ export default function KakaoMap({
           {showMyLocationButton && (
             <MyLocationButton
               onClick={recenterToUser}
-              bottomOffset={myLocationBottomOffset}
-              baseBottomPx={myLocationBaseBottomPx}
+              bottomPx={bottomPx}
               dragging={myLocationDragging}
             />
           )}

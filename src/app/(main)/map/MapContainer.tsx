@@ -76,15 +76,16 @@ export default function MapContainer({
 
   const [sheetOpen, setSheetOpen] = useState(initialSheetOpen);
   const [sheetDragging, setSheetDragging] = useState(false);
+  const [sheetVisiblePx, setSheetVisiblePx] = useState(0);
 
   const selectedStore: StoreLite | null = useMemo(
     () =>
       initialSheetOpen
         ? {
-          name: initialName || initialKeyword || "",
-          category: initialCategory,
-          storeId: initialStoreId,
-        }
+            name: initialName || initialKeyword || "",
+            category: initialCategory,
+            storeId: initialStoreId,
+          }
         : null,
     [initialSheetOpen, initialName, initialKeyword, initialCategory, initialStoreId]
   );
@@ -125,7 +126,7 @@ export default function MapContainer({
         setSelectedPlace(null);
       } catch (e) {
         console.error(e);
-        if (alive) setPlaces([]);
+        if (alive) setPlaces([]); 
       }
     })();
     return () => {
@@ -141,7 +142,7 @@ export default function MapContainer({
         if (alive) setFavorites(data);
       } catch (e) {
         console.error("즐겨찾기 로드 실패", e);
-        if (alive) setFavorites([]);
+        if (alive) setFavorites([]); 
       }
     })();
     return () => {
@@ -275,6 +276,14 @@ export default function MapContainer({
 
   const onViewOnMap = () => setSheetOpen(false);
 
+  const goDetail = (p: Place) => {
+    const qs = new URLSearchParams({
+      placeId: String(p.placeId ?? ""),
+      name: p.placeName ?? "",
+    }).toString();
+    router.push(`/map/store?${qs}`);
+  };
+
   const showList =
     (mode === "brand" && !!initialStoreId) ||
     (mode === "category" && (places?.length ?? 0) > 0);
@@ -324,7 +333,7 @@ export default function MapContainer({
             reloadNearby({ center: c });
           }
         }}
-        myLocationBottomOffset={0}
+        myLocationBottomOffset={sheetVisiblePx}
         myLocationBaseBottomPx={100}
         myLocationDragging={sheetDragging}
       />
@@ -339,6 +348,7 @@ export default function MapContainer({
         fullRatio={0.66}
         onDraggingChange={setSheetDragging}
         anchorRef={anchorRef}
+        onVisibleHeightChange={setSheetVisiblePx}
       >
         {sheetMode === "detail" && selectedPlace ? (
           <PlaceDetailSheet
@@ -350,6 +360,7 @@ export default function MapContainer({
             }
             favoritePlaceIds={favoritePlaceIds}
             onToggleFavoritePlace={onToggleFavoritePlace}
+            onOpenDetail={goDetail}
           />
         ) : showList ? (
           <StoreBottomSheet
@@ -364,15 +375,7 @@ export default function MapContainer({
             }}
             places={places ?? []}
             selected={selectedPlace ?? undefined}
-            onSelect={(p: Place) => {
-              setSelectedPlace(p);
-              setSheetMode("detail");
-              const qs = new URLSearchParams({
-                placeId: String(p.placeId ?? ""),
-                name: p.placeName ?? "",
-              }).toString();
-              router.push(`/map/store?${qs}`);
-            }}
+            onSelect={goDetail}
             onViewOnMap={onViewOnMap}
             favoritePlaceIds={favoritePlaceIds}
             onToggleFavoritePlace={onToggleFavoritePlace}
