@@ -1,5 +1,9 @@
 import TabBar from "@/components/common/TabBar";
 import { AuthProvider } from "@/contexts/AuthContext";
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
 export default function MainLayout({
   children,
 }: {

@@ -16,6 +16,7 @@ export default function Header({ title }: { title: string }) {
   const showBackButton =
     pathname.startsWith("/mypage/") &&
     pathname !== "/mypage" ||
+    pathname.startsWith("/chatbot/list")||
     pathname.startsWith("/membership/add")||
     pathname.startsWith("/map/store");
   const isPink = bgColor === "bg-[#FB4E6F]";
