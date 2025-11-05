@@ -13,6 +13,7 @@ const ALLOW_PREFIXES = [
   "/api/places",
   "/api/stores",
   "/api/auth",
+  "/api/benefits",
 ] as const;
 type AllowPath = (typeof ALLOW_PREFIXES)[number];
 
@@ -34,15 +35,30 @@ function buildTargetUrl(req: NextRequest): string {
   return url.toString();
 }
 
+function extractValidAuth(raw: string | null): string | null {
+  if (!raw) return null;
+  const m = raw.match(/^Bearer\s+(.+)$/i);
+  if (m) {
+    const token = m[1].trim();
+    if (!token || token === "undefined" || token === "null") return null;
+    return `Bearer ${token}`;
+  }
+  return raw;
+}
+
 function buildForwardHeaders(req: NextRequest, extra?: Record<string, string>): Headers {
   const h = new Headers();
 
-  const authFromHeader = req.headers.get("authorization");
-  if (authFromHeader) h.set("authorization", authFromHeader);
+  // 클라이언트 Authorization이 "유효"할 때만 사용
+  const validFromHeader = extractValidAuth(req.headers.get("authorization"));
+  if (validFromHeader) h.set("authorization", validFromHeader);
 
-  if (!authFromHeader) {
+  // 없거나 무효면 쿠키(auth_token)로 대체
+  if (!h.has("authorization")) {
     const tokenFromCookie = req.cookies.get("auth_token")?.value;
-    if (tokenFromCookie) h.set("authorization", `Bearer ${tokenFromCookie}`);
+    if (tokenFromCookie && tokenFromCookie !== "undefined" && tokenFromCookie !== "null") {
+      h.set("authorization", `Bearer ${tokenFromCookie}`);
+    }
   }
 
   const ct = req.headers.get("content-type");

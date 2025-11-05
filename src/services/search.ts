@@ -36,6 +36,11 @@ export const SECOND_CATEGORIES = [
 ] as const;
 export const SECOND_SET = new Set<string>(SECOND_CATEGORIES);
 
+export type MembershipFilter = {
+  carrier?: "SK" | "KT" | "LG";
+  level?: string; // 서버는 displayName 기준
+};
+
 // ------------------------------- 내부 유틸 -------------------------------
 function nonEmpty(v: unknown): string | undefined {
   if (typeof v === "string") {
@@ -85,6 +90,14 @@ async function getJson<T>(path: string, params: QueryParams = {}): Promise<T> {
   }
 }
 
+function attachFilter(base: QueryParams, filter?: MembershipFilter): QueryParams {
+  if (!filter) return base;
+  const next: QueryParams = { ...base };
+  if (filter.carrier) next.carrier = filter.carrier;
+  if (filter.level) next.level = filter.level;
+  return next;
+}
+
 // ------------------------------- 공개 검색 API들 -------------------------------
 export async function suggestStoreNames(q: string, limit = 5): Promise<Suggestion[]> {
   if (!q.trim()) return [];
@@ -132,23 +145,39 @@ export async function searchByDiv2Category(div2Category: string, limit = 10): Pr
   return Array.isArray(data.stores) ? data.stores : [];
 }
 
-export async function searchByCategoryKeyword(keyword: string, limit = 10): Promise<Store[]> {
+export async function searchByCategoryKeyword(
+  keyword: string,
+  limit = 10,
+  filter?: MembershipFilter
+): Promise<Store[]> {
   if (!keyword.trim()) return [];
-  const data = await getJson<AutoCompleteResponse>("/api/stores/category/search", { keyword, limit });
+  const params = attachFilter({ keyword, limit }, filter);
+  const data = await getJson<AutoCompleteResponse>("/api/stores/category/search", params);
   return Array.isArray(data.stores) ? data.stores : [];
 }
 
-export async function searchByDiv2CategoryKeyword(keyword: string, limit = 10): Promise<Store[]> {
+export async function searchByDiv2CategoryKeyword(
+  keyword: string,
+  limit = 10,
+  filter?: MembershipFilter
+): Promise<Store[]> {
   if (!keyword.trim()) return [];
-  const data = await getJson<AutoCompleteResponse>("/api/stores/div2-category/search", { keyword, limit });
+  const params = attachFilter({ keyword, limit }, filter);
+  const data = await getJson<AutoCompleteResponse>("/api/stores/div2-category/search", params);
   return Array.isArray(data.stores) ? data.stores : [];
 }
 
-export async function searchByCategoryCombined(category: string, div2Category: string, limit = 10): Promise<Store[]> {
+export async function searchByCategoryCombined(
+  category: string,
+  div2Category: string,
+  limit = 10,
+  filter?: MembershipFilter
+): Promise<Store[]> {
   if (!category.trim() || !div2Category.trim()) return [];
+  const params = attachFilter({ category, div2Category, limit }, filter);
   const data = await getJson<AutoCompleteResponse>(
-    "/api/stores/category/combined-search",
-    { category, div2Category, limit }
+    "/api/stores/category/keywords",
+    params
   );
   return Array.isArray(data.stores) ? data.stores : [];
 }

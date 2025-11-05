@@ -65,7 +65,7 @@ function withTimeout(signal: AbortSignal | undefined, timeoutMs: number) {
 
 async function proxyGet<T>(path: string, params: Record<string, string | number>, init?: RequestInit) {
   const qs = new URLSearchParams({ path, ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])) });
-  const token = getAccessToken();
+  const token = await getAccessToken();
   const res = await fetch(`/api/proxy?${qs.toString()}`, {
     cache: "no-store",
     ...(init ?? {}),

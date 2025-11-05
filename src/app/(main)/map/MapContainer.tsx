@@ -142,7 +142,7 @@ export default function MapContainer({
         if (alive) setFavorites(data);
       } catch (e) {
         console.error("즐겨찾기 로드 실패", e);
-        if (alive) setFavorites([]); 
+        if (alive) setFavorites([]);
       }
     })();
     return () => {
@@ -193,6 +193,14 @@ export default function MapContainer({
     }
     const placeName = p.placeName ?? "";
 
+    const categoryGuess =
+      (p as { category?: string }).category ??
+      selectedStore?.category ??
+      (selectedCategory ? CATEGORY_LABEL[selectedCategory] : "");
+
+    const storeIdNum = Number(p.storeId);
+    const safeStoreId = Number.isFinite(storeIdNum) ? storeIdNum : -1;
+
     // 낙관적 업데이트
     setFavorites((prev) => {
       if (!prev) return prev;
@@ -204,6 +212,8 @@ export default function MapContainer({
             userId: -1,
             placeId: placeIdNum,
             placeName,
+            storeId: safeStoreId,
+            category: categoryGuess,
             createdAt: new Date().toISOString(),
           },
           ...prev,
@@ -247,6 +257,8 @@ export default function MapContainer({
               userId: -1,
               placeId: placeIdNum,
               placeName,
+              storeId: safeStoreId,
+              category: categoryGuess,
               createdAt: new Date().toISOString(),
             },
             ...prev,
@@ -277,8 +289,13 @@ export default function MapContainer({
   const onViewOnMap = () => setSheetOpen(false);
 
   const goDetail = (p: Place) => {
+    const sid = Number(p.storeId);
+    if (!Number.isFinite(sid)) {
+      console.warn("[goDetail] storeId 없음 (placeId=", p.placeId, ")");
+      return;
+    }
     const qs = new URLSearchParams({
-      placeId: String(p.placeId ?? ""),
+      storeId: String(sid),
       name: p.placeName ?? "",
     }).toString();
     router.push(`/map/store?${qs}`);

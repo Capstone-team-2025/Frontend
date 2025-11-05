@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Header from "@/components/common/Header";
 import FavoriteButton from "@/components/button/FavoriteButton";
@@ -313,15 +314,38 @@ function FavoriteCard({
   item: FavoriteItem;
   onFavChange: (placeId: number, nextOn: boolean) => void;
 }) {
+  const router = useRouter();
   const initials = useMemo(() => makeInitials(item.placeName), [item.placeName]);
+
+  const goDetail = useCallback(() => {
+    const params = new URLSearchParams({
+      storeId: String(item.storeId),
+      name: item.placeName,
+    });
+    router.push(`/map/store?${params.toString()}`);
+  }, [router, item.storeId, item.placeName]); // deps도 storeId로
+
+  const onKeyOpen = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      goDetail();
+    }
+  }, [goDetail]);
 
   return (
     <div
-      className="relative rounded-2xl border border-gray-200 p-4 shadow-sm hover:shadow transition bg-white"
-      role="button"
+      className="relative rounded-2xl border border-gray-200 p-4 shadow-sm hover:shadow transition bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-gray-300"
+      role="link"
       tabIndex={0}
+      onClick={goDetail}
+      onKeyDown={onKeyOpen}
+      aria-label={`${item.placeName} 상세보기`}
     >
-      <div className="absolute right-3 top-3">
+      <div
+        className="absolute right-3 top-3"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+      >
         <FavoriteButton
           active
           ariaLabel={`${item.placeName} 즐겨찾기`}
