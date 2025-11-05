@@ -5,6 +5,7 @@ export type FavoriteItem = {
   userId: number;
   placeId: number;
   placeName: string;
+  storeId: number;
   category: string;
   createdAt: string;
 };
@@ -60,11 +61,13 @@ function normalizeFavoriteItem(src: PartialFavorite): FavoriteItem | null {
   const favoriteId = src.favoriteId;
   const userId = src.userId;
   const placeId = src.placeId;
+  const storeId = src.storeId;
 
   if (
     typeof favoriteId !== "number" ||
     typeof userId !== "number" ||
-    typeof placeId !== "number"
+    typeof placeId !== "number" ||
+    typeof storeId !== "number"
   ) {
     return null;
   }
@@ -81,6 +84,7 @@ function normalizeFavoriteItem(src: PartialFavorite): FavoriteItem | null {
     userId,
     placeId,
     placeName,
+    storeId,
     category,
     createdAt,
   };
@@ -133,6 +137,7 @@ export async function addFavorite(
       userId: -1,
       placeId,
       placeName,
+      storeId: -1,
       category: "",
       createdAt: new Date().toISOString(),
     };

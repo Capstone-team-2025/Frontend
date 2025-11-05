@@ -82,10 +82,10 @@ export default function MapContainer({
     () =>
       initialSheetOpen
         ? {
-          name: initialName || initialKeyword || "",
-          category: initialCategory,
-          storeId: initialStoreId,
-        }
+            name: initialName || initialKeyword || "",
+            category: initialCategory,
+            storeId: initialStoreId,
+          }
         : null,
     [initialSheetOpen, initialName, initialKeyword, initialCategory, initialStoreId]
   );
@@ -126,7 +126,7 @@ export default function MapContainer({
         setSelectedPlace(null);
       } catch (e) {
         console.error(e);
-        if (alive) setPlaces([]);
+        if (alive) setPlaces([]); 
       }
     })();
     return () => {
@@ -198,6 +198,9 @@ export default function MapContainer({
       selectedStore?.category ??
       (selectedCategory ? CATEGORY_LABEL[selectedCategory] : "");
 
+    const storeIdNum = Number(p.storeId);
+    const safeStoreId = Number.isFinite(storeIdNum) ? storeIdNum : -1;
+
     // 낙관적 업데이트
     setFavorites((prev) => {
       if (!prev) return prev;
@@ -209,6 +212,7 @@ export default function MapContainer({
             userId: -1,
             placeId: placeIdNum,
             placeName,
+            storeId: safeStoreId,
             category: categoryGuess,
             createdAt: new Date().toISOString(),
           },
@@ -253,6 +257,7 @@ export default function MapContainer({
               userId: -1,
               placeId: placeIdNum,
               placeName,
+              storeId: safeStoreId,
               category: categoryGuess,
               createdAt: new Date().toISOString(),
             },
