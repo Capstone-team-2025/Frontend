@@ -5,8 +5,11 @@ export type FavoriteItem = {
   userId: number;
   placeId: number;
   placeName: string;
+  category: string;
   createdAt: string;
 };
+
+type PartialFavorite = Partial<FavoriteItem>;
 
 const PROXY = "/api/proxy";
 
@@ -48,10 +51,45 @@ function unwrapObject<T>(json: unknown): T | undefined {
   if (isObject(json)) {
     const data = safeGet<unknown>(json, "data");
     if (isObject(data)) return data as T;
-
     return json as T;
   }
   return undefined;
+}
+
+function normalizeFavoriteItem(src: PartialFavorite): FavoriteItem | null {
+  const favoriteId = src.favoriteId;
+  const userId = src.userId;
+  const placeId = src.placeId;
+
+  if (
+    typeof favoriteId !== "number" ||
+    typeof userId !== "number" ||
+    typeof placeId !== "number"
+  ) {
+    return null;
+  }
+
+  const placeName = typeof src.placeName === "string" ? src.placeName : "";
+  const category = typeof src.category === "string" ? src.category : "";
+  const createdAt =
+    typeof src.createdAt === "string"
+      ? src.createdAt
+      : new Date().toISOString();
+
+  return {
+    favoriteId,
+    userId,
+    placeId,
+    placeName,
+    category,
+    createdAt,
+  };
+}
+
+function normalizeFavoriteList(list: PartialFavorite[]): FavoriteItem[] {
+  return list
+    .map(normalizeFavoriteItem)
+    .filter((x): x is FavoriteItem => x !== null);
 }
 
 export async function fetchFavorites(): Promise<FavoriteItem[]> {
@@ -73,7 +111,8 @@ export async function fetchFavorites(): Promise<FavoriteItem[]> {
   }
 
   const json = await safeJson(res);
-  return unwrapArray<FavoriteItem>(json, []);
+  const rawList = unwrapArray<PartialFavorite>(json, []);
+  return normalizeFavoriteList(rawList);
 }
 
 export async function addFavorite(
@@ -89,13 +128,15 @@ export async function addFavorite(
 
   if (res.status === 404) {
     console.warn("[favorites] POST 404 → fake item");
-    return {
+    const fallback: FavoriteItem = {
       favoriteId: -1,
       userId: -1,
       placeId,
       placeName,
+      category: "",
       createdAt: new Date().toISOString(),
     };
+    return fallback;
   }
 
   if (res.status === 409) {
@@ -109,7 +150,9 @@ export async function addFavorite(
   }
 
   const json = await safeJson(res);
-  const item = unwrapObject<FavoriteItem>(json);
+  const obj = unwrapObject<PartialFavorite>(json);
+  const item = obj ? normalizeFavoriteItem(obj) : null;
+
   if (!item) {
     const raw = await res.text().catch(() => "");
     console.error("[favorites] POST invalid payload", raw);
