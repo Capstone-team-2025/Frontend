@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import clsx from "clsx";
 
@@ -48,7 +48,9 @@ export default function BottomSheet({
 
   const [ratio, setRatio] = useState<number>(clamp(defaultRatio ?? MIN, MIN, MAX));
   const ratioRef = useRef(ratio);
-  useEffect(() => { ratioRef.current = ratio; }, [ratio]);
+  useEffect(() => {
+    ratioRef.current = ratio;
+  }, [ratio]);
 
   const dragging = useRef(false);
   const movedRef = useRef(false);
@@ -59,6 +61,13 @@ export default function BottomSheet({
   const verticalOnlyRef = useRef(false);
 
   const contentRef = useRef<HTMLDivElement>(null);
+
+  const notifyDragging = useCallback(
+    (v: boolean) => {
+      onDraggingChange?.(v);
+    },
+    [onDraggingChange]
+  );
 
   useEffect(() => {
     if (!mounted || !onVisibleHeightChange) return;
@@ -78,8 +87,8 @@ export default function BottomSheet({
     dragging.current = false;
     movedRef.current = false;
     verticalOnlyRef.current = false;
-    onDraggingChange?.(false);
-  }, [open]); // reset on open
+    notifyDragging(false);
+  }, [open, MIN, MAX, snapEpsilon, defaultRatio, notifyDragging]);
 
   const setSheetByDeltaY = (dy: number) => {
     const delta = -(dy / Math.max(1, vh));
@@ -101,14 +110,14 @@ export default function BottomSheet({
       dragging.current = false;
       movedRef.current = false;
       verticalOnlyRef.current = false;
-      onDraggingChange?.(false);
+      notifyDragging(false);
       return;
     }
 
     dragging.current = true;
     movedRef.current = false;
     verticalOnlyRef.current = false;
-    onDraggingChange?.(true);
+    notifyDragging(true);
 
     startY.current = e.clientY;
     startX.current = e.clientX;
@@ -125,7 +134,7 @@ export default function BottomSheet({
     if (!verticalOnlyRef.current) {
       if (Math.abs(dx) > Math.abs(dy)) {
         dragging.current = false;
-        onDraggingChange?.(false);
+        notifyDragging(false);
         return;
       } else {
         verticalOnlyRef.current = true;
@@ -133,7 +142,7 @@ export default function BottomSheet({
     }
 
     const frameDy = e.clientY - lastY.current;
-    const nextProbe = clamp(initRatioRef.current - (dy / Math.max(1, vh)), MIN, MAX);
+    const nextProbe = clamp(initRatioRef.current - dy / Math.max(1, vh), MIN, MAX);
     const overThreshold = Math.abs(dy) > DRAG_THRESHOLD_PX;
 
     if (nextProbe < MAX - snapEpsilon) {
@@ -148,7 +157,10 @@ export default function BottomSheet({
     }
 
     const el = contentRef.current;
-    if (!el) { lastY.current = e.clientY; return; }
+    if (!el) {
+      lastY.current = e.clientY;
+      return;
+    }
 
     if (el.scrollTop <= 0 && frameDy > 0) {
       if (overThreshold) {
@@ -168,9 +180,9 @@ export default function BottomSheet({
     if (!dragging.current) return;
 
     dragging.current = false;
-    onDraggingChange?.(false);
+    notifyDragging(false);
 
-    const draggedDown = (lastY.current - startY.current) > DRAG_THRESHOLD_PX;
+    const draggedDown = lastY.current - startY.current > DRAG_THRESHOLD_PX;
     const collapseThreshold = Math.max(MIN + 0.005, COLLAPSE_ABS_THRESHOLD);
 
     if (draggedDown && ratioRef.current <= collapseThreshold) {
@@ -265,7 +277,9 @@ export default function BottomSheet({
           onPointerMove={onAnyPointerMove}
           onPointerUp={onAnyPointerUp}
           onPointerCancel={onAnyPointerUp}
-          onPointerLeave={() => { if (dragging.current) onAnyPointerUp(); }}
+          onPointerLeave={() => {
+            if (dragging.current) onAnyPointerUp();
+          }}
           onClick={onHandleClick}
         >
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -285,7 +299,9 @@ export default function BottomSheet({
           onPointerMove={onAnyPointerMove}
           onPointerUp={onAnyPointerUp}
           onPointerCancel={onAnyPointerUp}
-          onPointerLeave={() => { if (dragging.current) onAnyPointerUp(); }}
+          onPointerLeave={() => {
+            if (dragging.current) onAnyPointerUp();
+          }}
           onClickCapture={(e) => {
             if (movedRef.current) {
               e.preventDefault();

@@ -1,7 +1,9 @@
-// src/app/(auth)/signup/page.tsx (서버)
+import type { Metadata } from "next";
 import CarrierSelectClient from "./SelectClient";
 
-export const metadata = { title: "회원가입페이지" };
+export const metadata: Metadata = {
+  title: "회원가입페이지",
+};
 
 export default function SignupPage() {
   return (

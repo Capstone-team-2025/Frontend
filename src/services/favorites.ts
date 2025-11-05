@@ -5,6 +5,7 @@ export type FavoriteItem = {
   userId: number;
   placeId: number;
   placeName: string;
+  category: string;
   createdAt: string;
 };
 
@@ -94,6 +95,7 @@ export async function addFavorite(
       userId: -1,
       placeId,
       placeName,
+      category: "",
       createdAt: new Date().toISOString(),
     };
   }

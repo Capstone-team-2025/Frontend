@@ -24,6 +24,8 @@ export default function StoreBottomSheet({
   favoritePlaceIds,
   onToggleFavoritePlace,
 }: Props) {
+  void selected;
+  void onViewOnMap;
   return (
     <div className="p-4 h-full flex flex-col">
       <div className="text-lg font-semibold shrink-0">{store.name}</div>

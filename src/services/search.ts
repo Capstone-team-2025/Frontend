@@ -85,6 +85,16 @@ async function getJson<T>(path: string, params: QueryParams = {}): Promise<T> {
   }
 }
 
+type Carrier = "SK" | "KT" | "LG";
+function normalizeCarrier(input?: string): Carrier | undefined {
+  if (!input) return undefined;
+  const up = input.toUpperCase();
+  if (up.includes("SK")) return "SK";
+  if (up.includes("KT")) return "KT";
+  if (up.includes("LG")) return "LG";
+  return undefined;
+}
+
 // ------------------------------- 공개 검색 API들 -------------------------------
 export async function suggestStoreNames(q: string, limit = 5): Promise<Suggestion[]> {
   if (!q.trim()) return [];
@@ -132,24 +142,27 @@ export async function searchByDiv2Category(div2Category: string, limit = 10): Pr
   return Array.isArray(data.stores) ? data.stores : [];
 }
 
-export async function searchByCategoryKeyword(keyword: string, limit = 10): Promise<Store[]> {
+export async function searchByCategoryKeyword(keyword: string, limit = 10, carrier?: string, level?: string): Promise<Store[]> {
   if (!keyword.trim()) return [];
-  const data = await getJson<AutoCompleteResponse>("/api/stores/category/search", { keyword, limit });
+  const data = await getJson<AutoCompleteResponse>("/api/stores/category/search", { keyword, limit, carrier: normalizeCarrier(carrier), level});
   return Array.isArray(data.stores) ? data.stores : [];
 }
 
-export async function searchByDiv2CategoryKeyword(keyword: string, limit = 10): Promise<Store[]> {
+export async function searchByDiv2CategoryKeyword(keyword: string, limit = 10, carrier?: string, level?: string): Promise<Store[]> {
   if (!keyword.trim()) return [];
-  const data = await getJson<AutoCompleteResponse>("/api/stores/div2-category/search", { keyword, limit });
+  const data = await getJson<AutoCompleteResponse>("/api/stores/div2-category/search", { keyword, limit, carrier: normalizeCarrier(carrier), level });
   return Array.isArray(data.stores) ? data.stores : [];
 }
 
-export async function searchByCategoryCombined(category: string, div2Category: string, limit = 10): Promise<Store[]> {
+export async function searchByCategoryCombined( category: string, div2Category: string, limit = 10, carrier?: string, level?: string ): Promise<Store[]> {
   if (!category.trim() || !div2Category.trim()) return [];
-  const data = await getJson<AutoCompleteResponse>(
-    "/api/stores/category/combined-search",
-    { category, div2Category, limit }
-  );
+  const data = await getJson<AutoCompleteResponse>("/api/stores/category/keywords", {
+    category,
+    div2Category,
+    limit,
+    carrier: normalizeCarrier(carrier),
+    level,
+  });
   return Array.isArray(data.stores) ? data.stores : [];
 }
 
@@ -170,7 +183,7 @@ export function isHangulConsonantOneChar(q: string): boolean {
   return /^[ㄱ-ㅎ]$/.test(q.trim());
 }
 
-export async function unifiedSearch(q: string, limit = 10): Promise<Store[]> {
+export async function unifiedSearch( q: string, limit = 10, carrier?: string, level?: string ): Promise<Store[]> {
   const raw = q.trim();
   if (!raw) return [];
   if (isHangulConsonantOneChar(raw)) return autocompleteByConsonant(raw, limit);
@@ -188,16 +201,16 @@ export async function unifiedSearch(q: string, limit = 10): Promise<Store[]> {
     if (exactSecond.length > 0) return exactSecond;
   }
 
-  const byDiv2 = await searchByDiv2CategoryKeyword(normalized, limit);
+  const byDiv2 = await searchByDiv2CategoryKeyword(normalized, limit, carrier, level);
   if (byDiv2.length > 0) return byDiv2;
 
-  const byFirst = await searchByCategoryKeyword(normalized, limit);
+  const byFirst = await searchByCategoryKeyword(normalized, limit, carrier, level);
   if (byFirst.length > 0) return byFirst;
 
   const tokens = normalized.split(/\s+/).filter(Boolean);
   if (tokens.length >= 2) {
     const [c1, c2] = tokens;
-    const combo = await searchByCategoryCombined(c1, c2, limit);
+    const combo = await searchByCategoryCombined(c1, c2, limit, carrier, level);
     if (combo.length > 0) return combo;
   }
 

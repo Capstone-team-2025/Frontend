@@ -1,14 +1,14 @@
 import MapContainer from "./MapContainer";
 
-export default async function Page({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const sp = await searchParams;
+type PageProps = {
+  searchParams?: Record<string, string | string[] | undefined>;
+};
+
+export default function Page({ searchParams }: PageProps) {
+  const sp = searchParams ?? {};
 
   const get = (k: string) => {
-    const v = sp?.[k];
+    const v = sp[k];
     return Array.isArray(v) ? v[0] : v ?? "";
   };
 
@@ -18,10 +18,13 @@ export default async function Page({
   const displayName = get("name") || keyword;
 
   const storeIdStr = get("storeId");
-  const storeId = storeIdStr ? Number(storeIdStr) : undefined;
+  const storeId =
+    storeIdStr !== "" && Number.isFinite(Number(storeIdStr))
+      ? Number(storeIdStr)
+      : undefined;
 
   return (
-    <main className="relative h-[100dvh] w-full overflow-hidden">
+    <main className="relative h-dvh w-full overflow-hidden">
       <MapContainer
         initialKeyword={keyword}
         initialCategory={categoryFirst}

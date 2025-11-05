@@ -1,7 +1,9 @@
 import { Suspense } from "react";
 import CompleteClient from "./CompleteClient";
 
-export default async function CompletePage() {
+export const dynamic = "force-dynamic";
+
+export default function CompletePage() {
   return (
     <Suspense fallback={null}>
       <CompleteClient />

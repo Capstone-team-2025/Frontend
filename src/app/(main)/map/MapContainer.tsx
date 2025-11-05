@@ -82,10 +82,10 @@ export default function MapContainer({
     () =>
       initialSheetOpen
         ? {
-            name: initialName || initialKeyword || "",
-            category: initialCategory,
-            storeId: initialStoreId,
-          }
+          name: initialName || initialKeyword || "",
+          category: initialCategory,
+          storeId: initialStoreId,
+        }
         : null,
     [initialSheetOpen, initialName, initialKeyword, initialCategory, initialStoreId]
   );
@@ -126,7 +126,7 @@ export default function MapContainer({
         setSelectedPlace(null);
       } catch (e) {
         console.error(e);
-        if (alive) setPlaces([]); 
+        if (alive) setPlaces([]);
       }
     })();
     return () => {
@@ -142,7 +142,7 @@ export default function MapContainer({
         if (alive) setFavorites(data);
       } catch (e) {
         console.error("즐겨찾기 로드 실패", e);
-        if (alive) setFavorites([]); 
+        if (alive) setFavorites([]);
       }
     })();
     return () => {
@@ -193,6 +193,12 @@ export default function MapContainer({
     }
     const placeName = p.placeName ?? "";
 
+    const categoryFromPlace =
+      (p as { category?: string }).category ??
+      (p as { store?: { category?: string } }).store?.category ??
+      (selectedCategory ? CATEGORY_LABEL[selectedCategory] : undefined) ??
+      "";
+
     // 낙관적 업데이트
     setFavorites((prev) => {
       if (!prev) return prev;
@@ -204,6 +210,7 @@ export default function MapContainer({
             userId: -1,
             placeId: placeIdNum,
             placeName,
+            category: categoryFromPlace,
             createdAt: new Date().toISOString(),
           },
           ...prev,
@@ -247,6 +254,7 @@ export default function MapContainer({
               userId: -1,
               placeId: placeIdNum,
               placeName,
+              category: categoryFromPlace,
               createdAt: new Date().toISOString(),
             },
             ...prev,
@@ -270,7 +278,7 @@ export default function MapContainer({
   }, [selectedPlace]);
 
   const nearbyPlaces: Place[] = useMemo(
-    () => nearbyAllFlat.map(({ brandColor, ...rest }) => rest),
+    () => nearbyAllFlat,
     [nearbyAllFlat]
   );
 

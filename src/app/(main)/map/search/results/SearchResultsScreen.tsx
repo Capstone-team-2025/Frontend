@@ -47,8 +47,6 @@ export default function SearchResultsScreen({ q }: { q: string }) {
     router.replace(`/map/search/results?q=${encodeURIComponent(term)}`, { scroll: false });
   };
 
-  const normalize = (s: string) => s.replace(/\([^)]*\)/g, "").replace(/[·.\-_/]/g, " ").replace(/\s+/g, " ").trim();
-
   const openOnMap = (s: Store) => {
     const params = new URLSearchParams();
     params.set("storeId", String(s.storeId));

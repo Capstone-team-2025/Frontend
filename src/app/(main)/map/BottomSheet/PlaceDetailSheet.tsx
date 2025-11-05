@@ -19,6 +19,7 @@ export default function PlaceDetailSheet({
   favoritePlaceIds,
   onToggleFavoritePlace,
 }: Props) {
+  void _onBackToList;
   const computedActive = favoritePlaceIds ? favoritePlaceIds.has(String(place.placeId)) : false;
   const [active, setActive] = useState<boolean>(computedActive);
   useEffect(() => setActive(computedActive), [computedActive, place.placeId]);

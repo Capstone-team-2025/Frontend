@@ -1,8 +1,16 @@
-export const metadata = { title: "통신사/등급 재설정 페이지" };
-
+import type { Viewport, Metadata } from "next";
 import Header from "@/components/common/Header";
 import SetMembershipClient from "./SetMembershipClient";
 import { cookies } from "next/headers";
+
+export const metadata: Metadata = {
+  title: "통신사/등급 재설정 페이지",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
 
 type Carrier = "SKT" | "KT" | "LGU+";
 
@@ -22,20 +30,18 @@ export default async function SetMembershipPage() {
         cache: "no-store",
       });
       if (r.ok) {
-        const me = await r.json();
-        initialCarrier = me.carrier as Carrier | undefined;
-        initialGrade = me.level as string | undefined;
+        const me = (await r.json()) as { carrier?: Carrier; level?: string };
+        initialCarrier = me.carrier;
+        initialGrade = me.level;
       }
-    } catch {}
+    } catch {
+    }
   }
 
   return (
     <div>
       <Header title="통신사/등급 재설정" />
-      <SetMembershipClient
-        initialCarrier={initialCarrier}
-        initialGrade={initialGrade}
-      />
+      <SetMembershipClient initialCarrier={initialCarrier} initialGrade={initialGrade} />
     </div>
   );
 }

@@ -1,10 +1,13 @@
 import SearchResultsScreen from "./SearchResultsScreen";
 
-export default async function Page({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string }>;
-}) {
-  const params = await searchParams;
-  return <SearchResultsScreen q={params.q ?? ""} />;
+type PageProps = {
+  searchParams?: { q?: string | string[] };
+};
+
+export default function Page({ searchParams }: PageProps) {
+  const qParam = Array.isArray(searchParams?.q)
+    ? searchParams?.q[0] ?? ""
+    : searchParams?.q ?? "";
+
+  return <SearchResultsScreen q={qParam} />;
 }

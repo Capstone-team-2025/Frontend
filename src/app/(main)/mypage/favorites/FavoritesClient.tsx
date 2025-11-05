@@ -58,6 +58,9 @@ const FIRST_LABEL_TO_ID: Record<string, string> = {
   "여행": "travel",
 };
 
+const LISTBOX_ID = "fav-suggest-list";
+const optionId = (idx: number) => `fav-suggest-opt-${idx}`;
+
 export default function FavoritesView() {
   const [items, setItems] = useState<FavoriteItem[]>([]);
   const [q, setQ] = useState<string>("");
@@ -102,8 +105,6 @@ export default function FavoritesView() {
 
       try {
         const lower = term.toLowerCase();
-
-        // 1차 카테고리 후보
         const firstCats = FIRST_CATEGORIES.filter((c) => c.toLowerCase().includes(lower));
         const catItems: SuggestItem[] = firstCats.map((c) => ({
           kind: "category",
@@ -111,18 +112,15 @@ export default function FavoritesView() {
           catId: FIRST_LABEL_TO_ID[c] ?? normalizeCategoryKey(c),
         }));
 
-        // 상호 자동완성
         const nameList = isHangulConsonantOneChar(term)
           ? await suggestByConsonant(term, 8)
           : await suggestStoreNames(term, 8);
 
-        // 상호 자동완성(목록형)
         const byAutoComplete = isHangulConsonantOneChar(term)
           ? await autocompleteByConsonant(term, 8)
           : await autocompleteStores(term, 8);
         const moreNames = byAutoComplete.map((s) => s.name);
 
-        // 중복 제거 병합
         const seen = new Set<string>();
         const nameItems: SuggestItem[] = [...nameList, ...moreNames]
           .filter((n) => {
@@ -246,19 +244,27 @@ export default function FavoritesView() {
               onKeyDown={onKeyDown}
               placeholder="검색"
               className="w-full outline-none text-sm"
+              role="combobox"
               aria-autocomplete="list"
+              aria-haspopup="listbox"
               aria-expanded={openSuggest}
+              aria-controls={openSuggest ? LISTBOX_ID : undefined}
+              aria-activedescendant={
+                openSuggest && focusIdx >= 0 ? optionId(focusIdx) : undefined
+              }
             />
           </div>
 
           {openSuggest && suggests.length > 0 && (
             <ul
+              id={LISTBOX_ID}
               role="listbox"
               className="absolute z-10 mt-1 w-full max-h-72 overflow-auto rounded-xl border border-gray-200 bg-white shadow"
             >
               {suggests.map((s, idx) => (
                 <li
                   key={`${s.kind}:${s.text}:${idx}`}
+                  id={optionId(idx)}
                   role="option"
                   aria-selected={idx === focusIdx}
                   className={[

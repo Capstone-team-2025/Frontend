@@ -8,7 +8,6 @@ import { suggestStoreNames, suggestByConsonant, isHangulConsonantOneChar } from 
 
 export default function SearchScreen({ prefill = "" }: { prefill?: string }) {
   const router = useRouter();
-  const [q, setQ] = useState(prefill);
   const [open, setOpen] = useState(!!prefill);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [highlight, setHighlight] = useState(-1);
@@ -17,10 +16,12 @@ export default function SearchScreen({ prefill = "" }: { prefill?: string }) {
 
   useEffect(() => {
     if (prefill.trim()) {
-      setQ(prefill);
       setOpen(true);
       runSuggest(prefill);
     }
+    return () => {
+      abortRef.current?.abort();
+    };
   }, [prefill]);
 
   useEffect(() => {
@@ -30,7 +31,7 @@ export default function SearchScreen({ prefill = "" }: { prefill?: string }) {
     const raf = requestAnimationFrame(() => {
       el.focus({ preventScroll: true });
       const len = el.value.length;
-      try { el.setSelectionRange(len, len); } catch { }
+      try { el.setSelectionRange(len, len); } catch { /* noop */ }
     });
 
     const t = setTimeout(() => {
@@ -46,7 +47,7 @@ export default function SearchScreen({ prefill = "" }: { prefill?: string }) {
   }, []);
 
   const runSuggest = async (text: string) => {
-    if (abortRef.current) abortRef.current.abort();
+    abortRef.current?.abort();
     const ac = new AbortController();
     abortRef.current = ac;
 
@@ -87,7 +88,6 @@ export default function SearchScreen({ prefill = "" }: { prefill?: string }) {
             placeholder="여기서 검색"
             onSearch={goResults}
             onChangeDebounced={(text) => {
-              setQ(text);
               runSuggest(text);
             }}
             debounceMs={180}

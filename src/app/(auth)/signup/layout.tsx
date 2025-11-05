@@ -1,16 +1,18 @@
-//(auth) 그룹 공통 레이아웃
-export default function MainLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+import type { Metadata, Viewport } from "next";
+
+export const metadata: Metadata = {
+  title: "Mapnefit",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-dvh bg-white">
-      <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
-        <div className="flex flex-1 items-center justify-center px-6">
-          <div className="w-full text-center">{children} </div>
-        </div>
-      </div>
-    </main>
+    <html lang="ko">
+      <body>{children}</body>
+    </html>
   );
 }

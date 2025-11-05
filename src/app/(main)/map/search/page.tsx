@@ -1,10 +1,12 @@
 import SearchScreen from "./SearchScreen";
 
-export default async function Page({
-  searchParams,
-}: {
-  searchParams: Promise<{ prefill?: string }>;
-}) {
-  const params = await searchParams;
-  return <SearchScreen prefill={params.prefill ?? ""} />;
+type PageProps = {
+  searchParams?: { prefill?: string | string[] };
+};
+
+export default function Page({ searchParams }: PageProps) {
+  const raw = searchParams?.prefill;
+  const prefill = Array.isArray(raw) ? raw[0] ?? "" : raw ?? "";
+
+  return <SearchScreen prefill={prefill} />;
 }
