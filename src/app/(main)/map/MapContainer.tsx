@@ -284,8 +284,13 @@ export default function MapContainer({
   const onViewOnMap = () => setSheetOpen(false);
 
   const goDetail = (p: Place) => {
+    const sid = Number(p.storeId);
+    if (!Number.isFinite(sid)) {
+      console.warn("[goDetail] storeId 없음 (placeId=", p.placeId, ")");
+      return;
+    }
     const qs = new URLSearchParams({
-      placeId: String(p.placeId ?? ""),
+      storeId: String(sid),
       name: p.placeName ?? "",
     }).toString();
     router.push(`/map/store?${qs}`);
