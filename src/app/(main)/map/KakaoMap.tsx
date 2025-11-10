@@ -89,9 +89,13 @@ export default function KakaoMap({
 
     watchIdRef.current = id;
     return () => {
-      if (watchIdRef.current != null) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
+      const geo = typeof navigator !== "undefined" ? navigator.geolocation : undefined;
+      const wid = watchIdRef.current;
+      if (wid !== null && geo && typeof geo.clearWatch === "function") {
+        geo.clearWatch(wid);
       }
+      watchIdRef.current = null;
+      
     };
   }, [ready]);
 
