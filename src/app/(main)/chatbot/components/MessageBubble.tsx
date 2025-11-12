@@ -3,28 +3,44 @@
 import React from "react";
 import clsx from "clsx";
 
+export type BubbleSender = "user" | "ai" | "typing";
+
 interface MessageBubbleProps {
-  message: string;
-  sender: "user" | "ai";
+  sender: BubbleSender;
+  message?: string;
 }
 
-export default function MessageBubble({ message, sender }: MessageBubbleProps) {
+export default function MessageBubble({ sender, message }: MessageBubbleProps) {
+  const isRight = sender === "user";
+
   return (
     <div
       className={clsx(
         "flex w-full mb-3",
-        sender === "user" ? "justify-end" : "justify-start"
+        isRight ? "justify-end" : "justify-start"
       )}
     >
       <div
         className={clsx(
           "px-3 py-2 rounded-2xl text-sm max-w-[70%]",
-          sender === "user"
+          "whitespace-pre-wrap break-words",
+          "max-h-60 overflow-y-auto no-scrollbar",
+          isRight
             ? "bg-gray-100 rounded-br-none"
+            : sender === "typing"
+            ? "bg-gray-50 text-gray-600 rounded-bl-none"
             : "bg-gray-100 rounded-bl-none"
         )}
       >
-        {message}
+        {sender === "typing" ? (
+          <span className="inline-flex gap-1">
+            <i className="animate-bounce">•</i>
+            <i className="animate-bounce [animation-delay:120ms]">•</i>
+            <i className="animate-bounce [animation-delay:240ms]">•</i>
+          </span>
+        ) : (
+          message ?? ""
+        )}
       </div>
     </div>
   );
