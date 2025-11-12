@@ -5,7 +5,57 @@ import { useEffect, useRef, useState } from "react";
 import { Map, MapMarker } from "react-kakao-maps-sdk";
 import UserLocationRadius from "./overlays/UserLocationRadius";
 import MyLocationButton from "./overlays/MyLocationButton";
-import type { Place } from "@/services/places";
+import type { Place, CategoryKey } from "@/services/places";
+
+// --------------------- 마커 이미지
+const ICON_SIZE = { width: 27, height: 40 } as const;
+const ICON_OFFSET = { x: ICON_SIZE.width / 2, y: ICON_SIZE.height } as const; // 하단 중앙 앵커
+
+type MarkerImageDef = {
+  src: string;
+  size: typeof ICON_SIZE;
+  options: { offset: typeof ICON_OFFSET; alt?: string };
+};
+
+const CATEGORY_MARKER: Record<CategoryKey, MarkerImageDef> = {
+  food: { src: "/images/MapMarker/food.png", size: ICON_SIZE, options: { offset: ICON_OFFSET, alt: "식음료" } },
+  shop: { src: "/images/MapMarker/shopping.png", size: ICON_SIZE, options: { offset: ICON_OFFSET, alt: "쇼핑/소매" } },
+  culture: { src: "/images/MapMarker/culture.png", size: ICON_SIZE, options: { offset: ICON_OFFSET, alt: "문화/엔터테인먼트" } },
+  mobility: { src: "/images/MapMarker/mobility.png", size: ICON_SIZE, options: { offset: ICON_OFFSET, alt: "모빌리티" } },
+  life: { src: "/images/MapMarker/life.png", size: ICON_SIZE, options: { offset: ICON_OFFSET, alt: "라이프" } },
+  travel: { src: "/images/MapMarker/travel.png", size: ICON_SIZE, options: { offset: ICON_OFFSET, alt: "여행" } },
+};
+
+// 분류 불명 시 기본값(원하면 변경)
+const DEFAULT_MARKER: MarkerImageDef = CATEGORY_MARKER.shop;
+
+/** 백엔드 확장 필드 대응용(타입 안전하게 확장) */
+type PlaceExtended = Place & {
+  categoryKey?: CategoryKey | null;
+  categoryName?: "식음료" | "쇼핑/소매" | "문화/엔터테인먼트" | "모빌리티" | "라이프" | "여행" | null;
+};
+
+/** categoryName → CategoryKey 정확 매핑 (백엔드 계약 6종) */
+const CATEGORY_NAME_TO_KEY: Record<
+  NonNullable<PlaceExtended["categoryName"]>,
+  CategoryKey
+> = {
+  "식음료": "food",
+  "쇼핑/소매": "shop",
+  "문화/엔터테인먼트": "culture",
+  "모빌리티": "mobility",
+  "라이프": "life",
+  "여행": "travel",
+};
+
+/** 최종 카테고리 결정: 서버 키 우선 → 정확 매핑 */
+function resolveCategoryKey(p: Place): CategoryKey | null {
+  const ep = p as PlaceExtended;
+  if (ep.categoryKey) return ep.categoryKey;
+  if (!ep.categoryName) return null;
+  return CATEGORY_NAME_TO_KEY[ep.categoryName] ?? null;
+}
+// ---------------------
 
 type LatLng = { lat: number; lng: number };
 
@@ -95,7 +145,7 @@ export default function KakaoMap({
         geo.clearWatch(wid);
       }
       watchIdRef.current = null;
-      
+
     };
   }, [ready]);
 
@@ -170,13 +220,19 @@ export default function KakaoMap({
               />
             )}
 
-            {markers.map((p) => (
-              <MapMarker
-                key={p.placeId}
-                position={{ lat: p.latitude, lng: p.longitude }}
-                onClick={() => onMarkerClick?.(p)}
-              />
-            ))}
+            {markers.map((p) => {
+              const key = resolveCategoryKey(p);
+              const image = key ? CATEGORY_MARKER[key] : DEFAULT_MARKER;
+
+              return (
+                <MapMarker
+                  key={p.placeId}
+                  position={{ lat: p.latitude, lng: p.longitude }}
+                  image={image}
+                  onClick={() => onMarkerClick?.(p)}
+                />
+              );
+            })}
           </Map>
 
           {showMyLocationButton && (
