@@ -149,12 +149,10 @@ export default function ChatbotClient() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
-          disabled={loading}
         />
         <button
           onClick={handleSend}
           className="bg-black text-white px-4 py-2 rounded-full text-sm disabled:opacity-60"
-          disabled={loading}
         >
           전송
         </button>
