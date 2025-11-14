@@ -6,33 +6,86 @@ import Header from "@/components/common/Header";
 import FavoriteButton from "@/components/button/FavoriteButton";
 import { fetchFavorites, removeFavorite, type FavoriteItem } from "@/services/favorites";
 import CategoryChips, { type Chip } from "@/app/(main)/map/overlays/CategoryChips";
-
 import {
   suggestStoreNames,
   suggestByConsonant,
   autocompleteStores,
   autocompleteByConsonant,
   isHangulConsonantOneChar,
-  FIRST_CATEGORIES,
 } from "@/services/search";
+import type { CategoryKey } from "@/services/places";
 
-function normalizeCategoryKey(raw: string): string {
-  const s = raw.trim().toLowerCase();
-  if (s.includes("식") || s.includes("음료") || s.includes("food")) return "food";
-  if (s.includes("쇼핑") || s.includes("소매") || s.includes("shop")) return "shop";
-  if (s.includes("문화") || s.includes("여가") || s.includes("culture")) return "culture";
-  if (s.includes("모빌리티") || s.includes("교통") || s.includes("mobility") || s.includes("transport")) return "mobility";
+// ---------------- 카테고리 정의 (지도 CategoryKey와 동일) ----------------
+
+const FAVORITE_CATEGORIES: ReadonlyArray<Chip> = [
+  { id: "cafe",    label: "카페",         iconSrc: "/images/category_icon/coffee.png" },
+  { id: "CVS",     label: "편의점",       iconSrc: "/images/category_icon/grocery-Store.png" },
+  { id: "food",    label: "식당",         iconSrc: "/images/category_icon/dining-room.png" },
+  { id: "movie",   label: "영화",         iconSrc: "/images/category_icon/movie-projector.png" },
+  { id: "shoping", label: "쇼핑/소매",    iconSrc: "/images/category_icon/shopping-bag.png" },
+  { id: "culture", label: "문화/여가",    iconSrc: "/images/category_icon/culture.png" },
+  { id: "hotel",   label: "호텔/리조트",  iconSrc: "/images/category_icon/hotel.png" },
+  { id: "life",    label: "라이프",       iconSrc: "/images/category_icon/home.png" },
+] as const;
+
+// ---------------- 즐겨찾기 카테고리 매핑 유틸 ----------------
+
+function normalizeFavoriteCategory(raw: string): CategoryKey | undefined {
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+
+  const directMap: Record<string, CategoryKey> = {
+    "카페": "cafe",
+    "카페/음료": "cafe",
+    "편의점": "CVS",
+    "식당": "food",
+    "식음료": "food",
+    "영화": "movie",
+    "쇼핑/소매": "shoping",
+    "문화/엔터테인먼트": "culture",
+    "문화/여가": "culture",
+    "호텔": "hotel",
+    "호텔/리조트": "hotel",
+    "라이프": "life",
+  };
+
+  if (directMap[trimmed]) {
+    return directMap[trimmed];
+  }
+
+  const s = trimmed.toLowerCase();
+
+  if (s.includes("카페") || s.includes("커피")) return "cafe";
+  if (s.includes("편의점") || s.includes("cvs")) return "CVS";
+  if (s.includes("식당") || s.includes("음식") || s.includes("식음료") || s.includes("food")) return "food";
+  if (s.includes("영화") || s.includes("시네마") || s.includes("cinema")) return "movie";
+  if (s.includes("쇼핑") || s.includes("소매") || s.includes("shop")) return "shoping";
+  if (s.includes("문화") || s.includes("여가") || s.includes("엔터테인먼트") || s.includes("culture")) return "culture";
+  if (s.includes("호텔") || s.includes("리조트") || s.includes("숙박")) return "hotel";
   if (s.includes("라이프") || s.includes("생활") || s.includes("life")) return "life";
-  if (s.includes("여행") || s.includes("travel") || s.includes("tour")) return "travel";
-  return s;
-}
-function getCategoryKeyFromFavorite(it: FavoriteItem): string | undefined {
-  const r = it as { category?: unknown; div2Category?: unknown; divCategory?: unknown };
-  if (typeof r.category === "string") return normalizeCategoryKey(r.category);
-  if (typeof r.div2Category === "string") return normalizeCategoryKey(r.div2Category);
-  if (typeof r.divCategory === "string") return normalizeCategoryKey(r.divCategory);
+
   return undefined;
 }
+
+function getCategoryKeyFromFavorite(it: FavoriteItem): CategoryKey | undefined {
+  const r = it as { category?: unknown; div2Category?: unknown; divCategory?: unknown };
+
+  if (typeof r.category === "string") {
+    const mapped = normalizeFavoriteCategory(r.category);
+    if (mapped) return mapped;
+  }
+  if (typeof r.div2Category === "string") {
+    const mapped = normalizeFavoriteCategory(r.div2Category);
+    if (mapped) return mapped;
+  }
+  if (typeof r.divCategory === "string") {
+    const mapped = normalizeFavoriteCategory(r.divCategory);
+    if (mapped) return mapped;
+  }
+
+  return undefined;
+}
+
 function makeInitials(name: string): string {
   const trimmed = name.trim();
   if (trimmed.length === 0) return "•";
@@ -47,17 +100,10 @@ function makeInitials(name: string): string {
 }
 
 type SuggestItem =
-  | { kind: "category"; text: string; catId: string }
+  | { kind: "category"; text: string; catId: CategoryKey }
   | { kind: "name"; text: string };
 
-const FIRST_LABEL_TO_ID: Record<string, string> = {
-  "식음료": "food",
-  "쇼핑/소매": "shop",
-  "문화/엔터테인먼트": "culture",
-  "모빌리티": "mobility",
-  "라이프": "life",
-  "여행": "travel",
-};
+// ---------------- 메인 컴포넌트 ----------------
 
 export default function FavoritesView() {
   const [items, setItems] = useState<FavoriteItem[]>([]);
@@ -71,6 +117,7 @@ export default function FavoritesView() {
   const inputRef = useRef<HTMLInputElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
 
+  // 즐겨찾기 목록 로드
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -90,7 +137,7 @@ export default function FavoritesView() {
     };
   }, []);
 
-  // 자동완성 (카테고리 + 브랜드/상호명)
+  // 검색 자동완성 (카테고리 + 상호명)
   useEffect(() => {
     const t = setTimeout(async () => {
       const term = q.trim();
@@ -104,12 +151,14 @@ export default function FavoritesView() {
       try {
         const lower = term.toLowerCase();
 
-        // 1차 카테고리 후보
-        const firstCats = FIRST_CATEGORIES.filter((c) => c.toLowerCase().includes(lower));
-        const catItems: SuggestItem[] = firstCats.map((c) => ({
+        // 카테고리 후보 (카페/편의점/식당/...)
+        const matchedCats = FAVORITE_CATEGORIES.filter((cat) =>
+          cat.label.toLowerCase().includes(lower),
+        );
+        const catItems: SuggestItem[] = matchedCats.map((cat) => ({
           kind: "category",
-          text: c,
-          catId: FIRST_LABEL_TO_ID[c] ?? normalizeCategoryKey(c),
+          text: cat.label,
+          catId: cat.id as CategoryKey,
         }));
 
         // 상호 자동완성
@@ -117,7 +166,6 @@ export default function FavoritesView() {
           ? await suggestByConsonant(term, 8)
           : await suggestStoreNames(term, 8);
 
-        // 상호 자동완성(목록형)
         const byAutoComplete = isHangulConsonantOneChar(term)
           ? await autocompleteByConsonant(term, 8)
           : await autocompleteStores(term, 8);
@@ -165,7 +213,7 @@ export default function FavoritesView() {
     const t = q.trim().toLowerCase();
     let arr = items;
 
-    const selected = selectedCat[0];
+    const selected = selectedCat[0] as CategoryKey | undefined;
     if (selected) {
       arr = arr.filter((i) => getCategoryKeyFromFavorite(i) === selected);
     }
@@ -177,17 +225,10 @@ export default function FavoritesView() {
   }, [items, q, selectedCat]);
 
   const handleFavChange = useCallback((placeId: number, nextOn: boolean) => {
-    if (!nextOn) setItems((prev) => prev.filter((i) => i.placeId !== placeId));
+    if (!nextOn) {
+      setItems((prev) => prev.filter((i) => i.placeId !== placeId));
+    }
   }, []);
-
-  const CATEGORIES: ReadonlyArray<Chip> = [
-    { id: "food", label: "식음료", iconSrc: "/images/category_icon/dining-room.png" },
-    { id: "shop", label: "쇼핑/소매", iconSrc: "/images/category_icon/shopping-bag.png" },
-    { id: "culture", label: "문화/여가", iconSrc: "/images/category_icon/movie-projector.png" },
-    { id: "mobility", label: "모빌리티", iconSrc: "/images/category_icon/taxi.png" },
-    { id: "life", label: "라이프", iconSrc: "/images/category_icon/home.png" },
-    { id: "travel", label: "여행", iconSrc: "/images/category_icon/world-map.png" },
-  ] as const;
 
   const applySuggestion = (s: SuggestItem) => {
     if (s.kind === "category") {
@@ -228,7 +269,14 @@ export default function FavoritesView() {
       <div className="px-4 pt-4" ref={boxRef}>
         <div className="relative">
           <div className="flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden className="shrink-0">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden
+              className="shrink-0"
+            >
               <path
                 d="M21 21l-4.2-4.2M10.8 18.6a7.8 7.8 0 1 1 0-15.6 7.8 7.8 0 0 1 0 15.6z"
                 stroke="currentColor"
@@ -245,7 +293,7 @@ export default function FavoritesView() {
                 if (suggests.length > 0) setOpenSuggest(true);
               }}
               onKeyDown={onKeyDown}
-              placeholder="검색"
+              placeholder="검색 (브랜드/상호명/카테고리)"
               className="w-full outline-none text-sm"
               aria-autocomplete="list"
               aria-expanded={openSuggest}
@@ -281,7 +329,7 @@ export default function FavoritesView() {
       {/* 카테고리 칩 */}
       <div className="px-2 mt-2">
         <CategoryChips
-          items={CATEGORIES}
+          items={FAVORITE_CATEGORIES}
           selectedIds={selectedCat}
           singleSelect
           onToggle={(_, next) => setSelectedCat(next)}
@@ -291,10 +339,20 @@ export default function FavoritesView() {
 
       {/* 목록 */}
       <div className="px-4 pb-8">
-        {loading && <div className="py-12 text-center text-gray-500 text-sm">불러오는 중…</div>}
-        {error && <div className="py-12 text-center text-red-500 text-sm">{error}</div>}
+        {loading && (
+          <div className="py-12 text-center text-gray-500 text-sm">
+            불러오는 중…
+          </div>
+        )}
+        {error && (
+          <div className="py-12 text-center text-red-500 text-sm">
+            {error}
+          </div>
+        )}
         {!loading && !error && filtered.length === 0 && (
-          <div className="py-12 text-center text-gray-400 text-sm">조건에 맞는 즐겨찾기가 없습니다.</div>
+          <div className="py-12 text-center text-gray-400 text-sm">
+            조건에 맞는 즐겨찾기가 없습니다.
+          </div>
         )}
 
         <div className="grid grid-cols-2 gap-4">
@@ -306,6 +364,8 @@ export default function FavoritesView() {
     </div>
   );
 }
+
+// ---------------- 카드 컴포넌트 ----------------
 
 function FavoriteCard({
   item,
@@ -323,14 +383,17 @@ function FavoriteCard({
       name: item.placeName,
     });
     router.push(`/map/store?${params.toString()}`);
-  }, [router, item.storeId, item.placeName]); // deps도 storeId로
+  }, [router, item.storeId, item.placeName]);
 
-  const onKeyOpen = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      goDetail();
-    }
-  }, [goDetail]);
+  const onKeyOpen = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        goDetail();
+      }
+    },
+    [goDetail],
+  );
 
   return (
     <div

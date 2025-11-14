@@ -28,6 +28,12 @@ const CATEGORY_MARKER: Record<CategoryKey, MarkerImageDef> = {
   life: { src: "/images/MapMarker/life.png", size: ICON_SIZE, options: { offset: ICON_OFFSET, alt: "라이프" } },
 };
 
+const LIKE_MARKER: MarkerImageDef = {
+  src: "/images/MapMarker/like.png",
+  size: ICON_SIZE,
+  options: { offset: ICON_OFFSET, alt: "즐겨찾기" },
+};
+
 // 분류 불명 시 기본값(원하면 변경)
 const DEFAULT_MARKER: MarkerImageDef = CATEGORY_MARKER.shoping;
 
@@ -76,6 +82,8 @@ type KakaoMapInstance = {
   getCenter: () => { getLat(): number; getLng(): number };
 };
 
+type MarkerMode = "normal" | "favorites";
+
 type Props = {
   center: LatLng;
   height?: number | string;
@@ -88,6 +96,8 @@ type Props = {
   myLocationDragging?: boolean;
   onMapClick?: () => void;
   draggable?: boolean;
+  markerMode?: MarkerMode;
+  favoritePlaceIds?: ReadonlySet<string>;
 };
 
 export default function KakaoMap({
@@ -102,6 +112,8 @@ export default function KakaoMap({
   myLocationDragging = false,
   onMapClick,
   draggable = true,
+  markerMode = "normal",
+  favoritePlaceIds,
 }: Props) {
   const [ready, setReady] = useState(false);
   const [userLocation, setUserLocation] = useState<LatLng | null>(null);
@@ -226,7 +238,18 @@ export default function KakaoMap({
 
             {markers.map((p) => {
               const key = resolveCategoryKey(p);
-              const image = key ? CATEGORY_MARKER[key] : DEFAULT_MARKER;
+
+              const isFavorite =
+                favoritePlaceIds !== undefined
+                  ? favoritePlaceIds.has(String(p.placeId))
+                  : false;
+
+              const image =
+                markerMode === "favorites" || isFavorite
+                  ? LIKE_MARKER
+                  : key
+                    ? CATEGORY_MARKER[key]
+                    : DEFAULT_MARKER;
 
               return (
                 <MapMarker

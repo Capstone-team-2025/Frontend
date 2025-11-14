@@ -11,6 +11,7 @@ import { useNearbyAll } from "./NearbyAllPlaces";
 import {
   fetchNearbyByStore,
   fetchNearbyByCategoryFlat,
+  fetchFavoritePlacesNearby,
   type CategoryKey,
   type Place,
 } from "@/services/places";
@@ -84,10 +85,10 @@ export default function MapContainer({
     () =>
       initialSheetOpen
         ? {
-            name: initialName || initialKeyword || "",
-            category: initialCategory,
-            storeId: initialStoreId,
-          }
+          name: initialName || initialKeyword || "",
+          category: initialCategory,
+          storeId: initialStoreId,
+        }
         : null,
     [initialSheetOpen, initialName, initialKeyword, initialCategory, initialStoreId]
   );
@@ -102,10 +103,13 @@ export default function MapContainer({
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [favorites, setFavorites] = useState<FavoriteItem[] | null>(null);
   const [categoryLoading, setCategoryLoading] = useState(false);
-  const [mode, setMode] = useState<"brand" | "category" | null>(
+  const [favoritesLoading, setFavoritesLoading] = useState(false);
+  const [mode, setMode] = useState<"brand" | "category" | "favorites" | null>(
     initialStoreId ? "brand" : null
   );
-  const [selectedCategory, setSelectedCategory] = useState<CategoryKey | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryKey | null>(
+    null
+  );
 
   const [manualCenter, setManualCenter] = useState<LatLng | null>(null);
 
@@ -119,7 +123,11 @@ export default function MapContainer({
       if (!userPos || !initialStoreId) return;
       setPlaces(null);
       try {
-        const { data } = await fetchNearbyByStore(initialStoreId, userPos.lat, userPos.lng);
+        const { data } = await fetchNearbyByStore(
+          initialStoreId,
+          userPos.lat,
+          userPos.lng
+        );
         if (!alive) return;
         setPlaces(data ?? []);
         setMode("brand");
@@ -128,7 +136,7 @@ export default function MapContainer({
         setSelectedPlace(null);
       } catch (e) {
         console.error(e);
-        if (alive) setPlaces([]); 
+        if (alive) setPlaces([]);
       }
     })();
     return () => {
@@ -158,8 +166,10 @@ export default function MapContainer({
   }, [favorites]);
 
   async function handleCategoryChange(ids: string[]) {
-    const key = ids[0] as CategoryKey | undefined;
-    if (!key) {
+    const first = ids[0];
+
+    // 아무 것도 선택 안 된 상태 → 초기화
+    if (!first) {
       setSelectedCategory(null);
       setMode(null);
       setSelectedPlace(null);
@@ -168,11 +178,43 @@ export default function MapContainer({
       setSheetMode("detail");
       return;
     }
+
     if (!userPos) return;
+
+    // ---- 즐겨찾기 모드 ----
+    if (first === "like") {
+      try {
+        setFavoritesLoading(true);
+        const { data } = await fetchFavoritePlacesNearby(
+          userPos.lat,
+          userPos.lng
+        );
+
+        setMode("favorites");
+        setSelectedCategory(null);
+        setPlaces(data);
+        setSheetMode("list");
+        setSelectedPlace(null);
+        setSheetOpen(true);
+      } catch (e) {
+        console.error("즐겨찾기 장소 검색 실패:", getErrorMessage(e));
+        setPlaces([]);
+      } finally {
+        setFavoritesLoading(false);
+      }
+      return;
+    }
+
+    // ---- 일반 카테고리 모드 ----
+    const key = first as CategoryKey;
 
     try {
       setCategoryLoading(true);
-      const { data } = await fetchNearbyByCategoryFlat(userPos.lat, userPos.lng, key);
+      const { data } = await fetchNearbyByCategoryFlat(
+        userPos.lat,
+        userPos.lng,
+        key
+      );
       setSelectedCategory(key);
       setMode("category");
       setPlaces(data);
@@ -203,6 +245,13 @@ export default function MapContainer({
     const storeIdNum = Number(p.storeId);
     const safeStoreId = Number.isFinite(storeIdNum) ? storeIdNum : -1;
 
+    // 즐겨찾기 모드에서 해제 → 리스트/마커에서도 제거 (낙관적)
+    if (mode === "favorites" && !next) {
+      setPlaces((prev) =>
+        prev ? prev.filter((place) => place.placeId !== placeIdNum) : prev
+      );
+    }
+
     // 낙관적 업데이트
     setFavorites((prev) => {
       if (!prev) return prev;
@@ -232,7 +281,9 @@ export default function MapContainer({
         const item = await addFavorite(placeIdNum, placeName);
         setFavorites((prev) => {
           if (!prev) return prev;
-          const idx = prev.findIndex((f) => f.placeId === placeIdNum && f.favoriteId === -1);
+          const idx = prev.findIndex(
+            (f) => f.placeId === placeIdNum && f.favoriteId === -1
+          );
           if (idx === -1) return prev;
           const copy = prev.slice();
           copy[idx] = item;
@@ -245,12 +296,14 @@ export default function MapContainer({
       const msg = getErrorMessage(err);
       if (msg === "DUPLICATED_FAVORITE") return;
 
-      // 롤백
+      // 즐겨찾기 목록 롤백
       setFavorites((prev) => {
         if (!prev) return prev;
         const exists = prev.some((f) => f.placeId === placeIdNum);
         if (next && exists) {
-          return prev.filter((f) => !(f.placeId === placeIdNum && f.favoriteId === -1));
+          return prev.filter(
+            (f) => !(f.placeId === placeIdNum && f.favoriteId === -1)
+          );
         }
         if (!next && !exists) {
           return [
@@ -268,20 +321,23 @@ export default function MapContainer({
         }
         return prev;
       });
+
+      // 즐겨찾기 모드일 때 places도 롤백
+      if (mode === "favorites" && !next) {
+        setPlaces((prev) => {
+          if (!prev) return prev;
+          const exists = prev.some((place) => place.placeId === placeIdNum);
+          if (exists) return prev;
+          return [p, ...prev];
+        });
+      }
     }
   }
 
   const mapCenter = useMemo(
-    () =>
-      selectedPlace
-        ? { lat: selectedPlace.latitude, lng: selectedPlace.longitude }
-        : (manualCenter ?? nearbyCenter ?? BAEKSEOK_UNIV),
-    [selectedPlace, manualCenter, nearbyCenter]
+    () => manualCenter ?? nearbyCenter ?? BAEKSEOK_UNIV,
+    [manualCenter, nearbyCenter]
   );
-
-  useEffect(() => {
-    if (selectedPlace) setManualCenter(null);
-  }, [selectedPlace]);
 
   const nearbyPlaces: Place[] = useMemo(
     () => nearbyAllFlat.map(({ brandColor, ...rest }) => rest),
@@ -305,15 +361,16 @@ export default function MapContainer({
 
   const showList =
     (mode === "brand" && !!initialStoreId) ||
-    (mode === "category" && (places?.length ?? 0) > 0);
+    (mode === "category" && (places?.length ?? 0) > 0) ||
+    (mode === "favorites" && (places?.length ?? 0) > 0);
 
   return (
     <div ref={anchorRef} className="w-full h-full relative">
       <MapOverlays onCategoryChange={handleCategoryChange} />
 
-      {categoryLoading && (
+      {(categoryLoading || favoritesLoading) && (
         <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 text-xs bg-black/70 text-white px-2 py-1 rounded">
-          카테고리 검색 중…
+          {favoritesLoading ? "즐겨찾기 불러오는 중…" : "카테고리 검색 중…"}
         </div>
       )}
 
@@ -331,19 +388,26 @@ export default function MapContainer({
       <KakaoMap
         height="100%"
         center={mapCenter}
-        markers={(mode === "brand" || mode === "category") ? (places ?? []) : nearbyPlaces}
+        markers={
+          mode === "brand" || mode === "category" || mode === "favorites"
+            ? (places ?? [])
+            : nearbyPlaces
+        }
+        markerMode={mode === "favorites" ? "favorites" : "normal"}
+        favoritePlaceIds={favoritePlaceIds}
         draggable={!sheetDragging}
         onMarkerClick={(p: Place) => {
           setSelectedPlace(p);
           setSheetMode("detail");
           setSheetOpen(true);
+          setManualCenter({ lat: p.latitude, lng: p.longitude });
         }}
         onMapClick={() => {
-          if (mode === null) {
-            setSelectedPlace(null);
-            setSheetOpen(false);
-            setSheetMode("detail");
-          }
+          if (!sheetOpen || sheetDragging) return;
+
+          setSelectedPlace(null);
+          setSheetOpen(false);
+          setSheetMode("detail");
         }}
         onCenterChange={(c) => {
           setManualCenter(c);
@@ -373,7 +437,8 @@ export default function MapContainer({
           <PlaceDetailSheet
             place={selectedPlace}
             onBackToList={
-              (mode === "brand" || mode === "category") && (places?.length ?? 0) > 0
+              (mode === "brand" || mode === "category" || mode === "favorites") &&
+                (places?.length ?? 0) > 0
                 ? () => setSheetMode("list")
                 : undefined
             }
@@ -387,8 +452,12 @@ export default function MapContainer({
               storeId: mode === "brand" ? initialStoreId : undefined,
               name:
                 mode === "brand"
-                  ? (selectedStore?.name || initialName || initialKeyword || "")
-                  : (selectedCategory ? CATEGORY_LABEL[selectedCategory] : "주변 매장"),
+                  ? selectedStore?.name || initialName || initialKeyword || ""
+                  : mode === "favorites"
+                    ? "즐겨찾기"
+                    : selectedCategory
+                      ? CATEGORY_LABEL[selectedCategory]
+                      : "주변 매장",
               category:
                 mode === "brand" ? initialCategory : selectedCategory ?? undefined,
             }}
@@ -400,7 +469,9 @@ export default function MapContainer({
             onToggleFavoritePlace={onToggleFavoritePlace}
           />
         ) : (
-          <div className="p-4 text-neutral-500">매장을 선택해 주세요.</div>
+          <div className="p-4 text-neutral-500">
+            근처에 해당 카테고리 제휴 매장이 없습니다.
+          </div>
         )}
       </BottomSheet>
     </div>
