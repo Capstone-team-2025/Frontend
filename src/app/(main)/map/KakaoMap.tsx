@@ -7,7 +7,7 @@ import UserLocationRadius from "./overlays/UserLocationRadius";
 import MyLocationButton from "./overlays/MyLocationButton";
 import type { Place, CategoryKey } from "@/services/places";
 
-// --------------------- 마커 이미지
+// --------------------- 마커 이미지 ---------------------
 const ICON_SIZE = { width: 27, height: 40 } as const;
 const ICON_OFFSET = { x: ICON_SIZE.width / 2, y: ICON_SIZE.height } as const; // 하단 중앙 앵커
 
@@ -18,34 +18,38 @@ type MarkerImageDef = {
 };
 
 const CATEGORY_MARKER: Record<CategoryKey, MarkerImageDef> = {
-  food: { src: "/images/MapMarker/food.png", size: ICON_SIZE, options: { offset: ICON_OFFSET, alt: "식음료" } },
-  shop: { src: "/images/MapMarker/shopping.png", size: ICON_SIZE, options: { offset: ICON_OFFSET, alt: "쇼핑/소매" } },
-  culture: { src: "/images/MapMarker/culture.png", size: ICON_SIZE, options: { offset: ICON_OFFSET, alt: "문화/엔터테인먼트" } },
-  mobility: { src: "/images/MapMarker/mobility.png", size: ICON_SIZE, options: { offset: ICON_OFFSET, alt: "모빌리티" } },
+  cafe: { src: "/images/MapMarker/cafe.png", size: ICON_SIZE, options: { offset: ICON_OFFSET, alt: "카페" } },
+  CVS: { src: "/images/MapMarker/cvs.png", size: ICON_SIZE, options: { offset: ICON_OFFSET, alt: "편의점" } },
+  food: { src: "/images/MapMarker/food.png", size: ICON_SIZE, options: { offset: ICON_OFFSET, alt: "식당" } },
+  movie: { src: "/images/MapMarker/movie.png", size: ICON_SIZE, options: { offset: ICON_OFFSET, alt: "영화" } },
+  shoping: { src: "/images/MapMarker/shopping.png", size: ICON_SIZE, options: { offset: ICON_OFFSET, alt: "쇼핑/소매" } },
+  culture: { src: "/images/MapMarker/culture.png", size: ICON_SIZE, options: { offset: ICON_OFFSET, alt: "문화/여가" } },
+  hotel: { src: "/images/MapMarker/hotel.png", size: ICON_SIZE, options: { offset: ICON_OFFSET, alt: "호텔/리조트" } },
   life: { src: "/images/MapMarker/life.png", size: ICON_SIZE, options: { offset: ICON_OFFSET, alt: "라이프" } },
-  travel: { src: "/images/MapMarker/travel.png", size: ICON_SIZE, options: { offset: ICON_OFFSET, alt: "여행" } },
 };
 
 // 분류 불명 시 기본값(원하면 변경)
-const DEFAULT_MARKER: MarkerImageDef = CATEGORY_MARKER.shop;
+const DEFAULT_MARKER: MarkerImageDef = CATEGORY_MARKER.shoping;
 
-/** 백엔드 확장 필드 대응용(타입 안전하게 확장) */
+// 백엔드 확장 필드 대응용(타입 안전하게 확장)
 type PlaceExtended = Place & {
   categoryKey?: CategoryKey | null;
-  categoryName?: "식음료" | "쇼핑/소매" | "문화/엔터테인먼트" | "모빌리티" | "라이프" | "여행" | null;
+  categoryName?: "카페" | "편의점" | "식당" | "영화" | "쇼핑/소매" | "문화/엔터테인먼트" | "라이프" | "호텔/리조트" | null;
 };
 
-/** categoryName → CategoryKey 정확 매핑 (백엔드 계약 6종) */
+/** categoryName → CategoryKey 정확 매핑 */
 const CATEGORY_NAME_TO_KEY: Record<
   NonNullable<PlaceExtended["categoryName"]>,
   CategoryKey
 > = {
-  "식음료": "food",
-  "쇼핑/소매": "shop",
+  "카페": "cafe",
+  "편의점": "CVS",
+  "식당": "food",
+  "영화": "movie",
+  "쇼핑/소매": "shoping",
   "문화/엔터테인먼트": "culture",
-  "모빌리티": "mobility",
   "라이프": "life",
-  "여행": "travel",
+  "호텔/리조트": "hotel",
 };
 
 /** 최종 카테고리 결정: 서버 키 우선 → 정확 매핑 */
@@ -55,7 +59,7 @@ function resolveCategoryKey(p: Place): CategoryKey | null {
   if (!ep.categoryName) return null;
   return CATEGORY_NAME_TO_KEY[ep.categoryName] ?? null;
 }
-// ---------------------
+// ------------------------------------------
 
 type LatLng = { lat: number; lng: number };
 
@@ -216,7 +220,7 @@ export default function KakaoMap({
                 radiusMeters={accuracy ?? 300}
                 showCircle={false}
                 showMarker={true}
-                markerSize={{ width: 28, height: 34 }}
+                markerSize={{ width: 30, height: 45 }}
               />
             )}
 

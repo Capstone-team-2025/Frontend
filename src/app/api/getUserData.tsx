@@ -1,24 +1,55 @@
+import 'server-only';
+import { headers, cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
-import { cookies } from "next/headers";
+export type MeOkUser = {
+  id: number;
+  nickname: string;
+  profileImage: string;
+  kakaoId: number;
+  level: string;
+  levelDisplayName: string;
+};
+
+async function absoluteUrl(path: string) {
+  const h = await headers();
+
+  const rawHost =
+    h.get('x-forwarded-host') ||
+    h.get('host') ||
+    process.env.VERCEL_URL ||
+    'localhost:3000';
+
+  const isFull = rawHost.startsWith('http://') || rawHost.startsWith('https://');
+  const xfProto = h.get('x-forwarded-proto');
+  const proto = xfProto || (rawHost.includes('localhost') ? 'http' : 'https');
+  const base = isFull ? rawHost : `${proto}://${rawHost}`;
+
+  const p = path.startsWith('/') ? path : `/${path}`;
+  return `${base}${p}`;
+}
+
+async function cookieHeader() {
+  const c = await cookies();
+  return c.getAll().map(({ name, value }) => `${name}=${value}`).join('; ');
+}
 
 export async function getUserData() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("auth_token")?.value;
+  const url = await absoluteUrl('/api/auth/me');
+  const ck = await cookieHeader();
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/kakao/me`,
-    {
-      method: "GET",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      cache: "no-store",
-      credentials: "include",
-    }
-  );
+  const res = await fetch(url, {
+    cache: 'no-store',
+    headers: { Cookie: ck },
+  });
 
+  if (res.status === 401) {
+    redirect('/');
+  }
   if (!res.ok) {
-    throw new Error(`getUserData failed: ${res.status}`);
+    throw new Error(`Failed to fetch user: ${res.status}`);
   }
 
-  const json = await res.json();
+  const json = (await res.json()) as { user: MeOkUser };
   return json.user;
 }

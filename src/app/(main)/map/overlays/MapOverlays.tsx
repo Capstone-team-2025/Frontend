@@ -5,12 +5,14 @@ import CategoryChips, { Chip } from "./CategoryChips";
 import SearchLauncher from "./SearchLauncher";
 
 const CATEGORIES: Chip[] = [
-  { id: "food",    label: "식음료",   iconSrc: "/images/category_icon/dining-room.png" },
-  { id: "shop",    label: "쇼핑/소매", iconSrc: "/images/category_icon/shopping-bag.png" },
-  { id: "culture", label: "문화/여가", iconSrc: "/images/category_icon/movie-projector.png" },
-  { id: "mobility",label: "모빌리티",  iconSrc: "/images/category_icon/taxi.png" },
+  { id: "cafe",    label: "카페",   iconSrc: "/images/category_icon/coffee.png" },
+  { id: "CVS",     label: "편의점",   iconSrc: "/images/category_icon/grocery-Store.png" },
+  { id: "food",    label: "식당",   iconSrc: "/images/category_icon/dining-room.png" }, 
+  { id: "movie",   label: "영화",   iconSrc: "/images/category_icon/movie-projector.png" },
+  { id: "shoping", label: "쇼핑/소매", iconSrc: "/images/category_icon/shopping-bag.png" },
+  { id: "culture", label: "문화/여가", iconSrc: "/images/category_icon/culture.png" },
+  { id: "hotel",   label: "호텔",  iconSrc: "/images/category_icon/hotel.png" },
   { id: "life",    label: "라이프",   iconSrc: "/images/category_icon/home.png" },
-  { id: "travel",  label: "여행",     iconSrc: "/images/category_icon/world-map.png" },
 ];
 
 export default function MapOverlays({

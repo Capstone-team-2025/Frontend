@@ -44,6 +44,10 @@ export default function FavoriteButton({
     [checked, loading, onChange, stopPropagation]
   );
 
+  const iconSrc = checked
+    ? "/images/button_Icon/favorite-a.png"
+    : "/images/button_Icon/favorite.png";
+
   return (
     <button
       type="button"
@@ -53,27 +57,19 @@ export default function FavoriteButton({
       onClick={toggle}
       className={clsx(
         "inline-flex items-center justify-center transition-transform active:scale-95",
-        "text-rose-500",
         loading && "opacity-60",
         className
       )}
       style={{ width: size, height: size }}
       data-nodrag
     >
-      {checked ? (
-        <svg viewBox="0 0 24 24" fill="currentColor" width={size} height={size}>
-          <path d="M12 21s-6.716-4.31-9.293-7.09C.83 11.91 1.09 8.7 3.32 6.92a5.5 5.5 0 0 1 7.36.62l1.32 1.49 1.32-1.49a5.5 5.5 0 0 1 7.36-.62c2.23 1.78 2.49 4.99.61 6.99C18.716 16.69 12 21 12 21z" />
-        </svg>
-      ) : (
-        <svg viewBox="0 0 24 24" fill="none" width={size} height={size}>
-          <path
-            d="M12 21s-6.716-4.31-9.293-7.09C.83 11.91 1.09 8.7 3.32 6.92a5.5 5.5 0 0 1 7.36.62L12 9.03l1.32-1.49a5.5 5.5 0 0 1 7.36-.62c2.23 1.78 2.49 4.99.61 6.99C18.716 16.69 12 21 12 21z"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-          />
-        </svg>
-      )}
+      <img
+        src={iconSrc}
+        alt={ariaLabel}
+        width={size}
+        height={size}
+        draggable={false}
+      />
     </button>
   );
 }

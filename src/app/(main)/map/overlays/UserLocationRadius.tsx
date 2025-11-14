@@ -37,7 +37,7 @@ export default function UserLocationRadius({
   showMarker = true,
 
   markerSrc = "/images/MapMarker/myloc.png",
-  markerSize = { width: 60, height: 90 },
+  markerSize = { width: 27, height: 40 },
   markerTailPad = 6,
 
   radiusMeters = 500,

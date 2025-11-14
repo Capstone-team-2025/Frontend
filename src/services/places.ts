@@ -31,7 +31,7 @@ export type NearbyByStoreResponse = {
   data: Place[];
 };
 
-export type CategoryKey = "food" | "shop" | "culture" | "mobility" | "life" | "travel";
+export type CategoryKey = "cafe" | "CVS" | "food" | "movie" | "shoping" | "culture" | "hotel" | "life";
 
 export type NearbyByCategoryResponse = {
   success: boolean;
