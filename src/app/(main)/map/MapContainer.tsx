@@ -33,12 +33,14 @@ type LatLng = { lat: number; lng: number };
 const BAEKSEOK_UNIV: LatLng = { lat: 36.8398, lng: 127.1849 };
 
 const CATEGORY_LABEL: Record<CategoryKey, string> = {
-  food: "식음료",
-  shop: "쇼핑/소매",
+  cafe: "카페",
+  CVS: "편의점",
+  food: "식당",
+  movie: "영화",
+  shoping: "쇼핑/소매",
   culture: "문화/여가",
-  mobility: "모빌리티",
+  hotel: "호텔/리조트",
   life: "라이프",
-  travel: "여행",
 };
 
 function getErrorMessage(e: unknown): string {

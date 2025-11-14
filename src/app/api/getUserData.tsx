@@ -2,6 +2,8 @@ import 'server-only';
 import { headers, cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
+export type Carrier = "SKT" | "KT" | "LGU+";
+
 export type MeOkUser = {
   id: number;
   nickname: string;
@@ -9,6 +11,7 @@ export type MeOkUser = {
   kakaoId: number;
   level: string;
   levelDisplayName: string;
+  carrier: Carrier;
 };
 
 async function absoluteUrl(path: string) {
