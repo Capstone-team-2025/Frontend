@@ -19,9 +19,14 @@ export default function PlaceDetailSheet({
   favoritePlaceIds,
   onToggleFavoritePlace,
 }: Props) {
-  const computedActive = favoritePlaceIds ? favoritePlaceIds.has(String(place.placeId)) : false;
+  const computedActive = favoritePlaceIds
+    ? favoritePlaceIds.has(String(place.placeId))
+    : false;
   const [active, setActive] = useState<boolean>(computedActive);
-  useEffect(() => setActive(computedActive), [computedActive, place.placeId]);
+  useEffect(
+    () => setActive(computedActive),
+    [computedActive, place.placeId]
+  );
 
   return (
     <div className="p-4 space-y-3">
@@ -32,7 +37,26 @@ export default function PlaceDetailSheet({
           aria-label="상세 페이지 이동"
           onClick={() => onOpenDetail?.(place)}
         >
-          <h3 className="text-lg font-semibold leading-tight">{place.placeName}</h3>
+          <div className="flex items-center gap-3 mb-1">
+            {place.storeLogo && (
+              <img
+                src={place.storeLogo}
+                alt={
+                  place.storeName
+                    ? `${place.storeName} 로고`
+                    : "매장 로고"
+                }
+                width={32}
+                height={32}
+                loading="lazy"
+                className="w-8 h-8 rounded-md bg-neutral-100 object-contain"
+              />
+            )}
+            <h3 className="text-lg font-semibold leading-tight">
+              {place.placeName}
+            </h3>
+          </div>
+
           <div className="text-sm text-neutral-600">
             {place.roadAddressName || place.addressName}
             {typeof place.distance === "number" && (
@@ -41,7 +65,11 @@ export default function PlaceDetailSheet({
           </div>
         </div>
 
-        <div className="shrink-0 ml-3" role="button" aria-label="즐겨찾기 토글">
+        <div
+          className="shrink-0 ml-3"
+          role="button"
+          aria-label="즐겨찾기 토글"
+        >
           <FavoriteButton
             className="mt-1"
             size={22}

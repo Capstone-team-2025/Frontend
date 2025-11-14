@@ -14,6 +14,7 @@ export type Place = {
   placeUrl?: string;
   distance?: number | null;
   createdAt: string;
+  storeLogo?: string;
 };
 
 export type NearbyAllResponse = {

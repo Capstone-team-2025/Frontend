@@ -30,7 +30,9 @@ export default function SearchResultsScreen({ q }: { q: string }) {
         if (alive) setItems([]);
       }
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [q]);
 
   const goOverlay = (text: string) => {
@@ -44,10 +46,18 @@ export default function SearchResultsScreen({ q }: { q: string }) {
   const goResults = (text: string) => {
     const term = (text ?? "").trim();
     if (!term) return;
-    router.replace(`/map/search/results?q=${encodeURIComponent(term)}`, { scroll: false });
+    router.replace(
+      `/map/search/results?q=${encodeURIComponent(term)}`,
+      { scroll: false }
+    );
   };
 
-  const normalize = (s: string) => s.replace(/\([^)]*\)/g, "").replace(/[·.\-_/]/g, " ").replace(/\s+/g, " ").trim();
+  const normalize = (s: string) =>
+    s
+      .replace(/\([^)]*\)/g, "")
+      .replace(/[·.\-_/]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
 
   const openOnMap = (s: Store) => {
     const params = new URLSearchParams();
@@ -57,8 +67,15 @@ export default function SearchResultsScreen({ q }: { q: string }) {
     router.push(`/map?${params.toString()}`);
   };
 
+  const buildStoreLogoUrl = (storeId: number): string =>
+    `https://api.parkruan.cc/api/stores/logo/${storeId}`;
+
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-white" role="dialog" aria-modal="true">
+    <div
+      className="fixed inset-0 z-[100] flex flex-col bg-white"
+      role="dialog"
+      aria-modal="true"
+    >
       {/* 상단 바 */}
       <div className="border-b border-neutral-100">
         <div className="mx-auto w-full max-w-[425px] px-3 pt-[calc(env(safe-area-inset-top)+8px)] h-[56px] flex items-center gap-2">
@@ -88,8 +105,14 @@ export default function SearchResultsScreen({ q }: { q: string }) {
       {/* 결과 리스트 */}
       <div className="flex-1 overflow-auto">
         <div className="mx-auto w-full max-w-[425px]">
-          {items === null && <p className="px-4 py-3 text-neutral-400">불러오는 중…</p>}
-          {items?.length === 0 && <p className="px-4 py-3 text-neutral-400">검색 결과가 없습니다.</p>}
+          {items === null && (
+            <p className="px-4 py-3 text-neutral-400">불러오는 중…</p>
+          )}
+          {items?.length === 0 && (
+            <p className="px-4 py-3 text-neutral-400">
+              검색 결과가 없습니다.
+            </p>
+          )}
           {items && items.length > 0 && (
             <ul className="p-3 space-y-3">
               {items.map((s) => (
@@ -100,12 +123,28 @@ export default function SearchResultsScreen({ q }: { q: string }) {
                   role="button"
                   tabIndex={0}
                 >
-                  <div className="w-14 h-14 rounded-lg bg-neutral-100 flex items-center justify-center text-neutral-400">🏪</div>
+                  <div className="w-14 h-14 rounded-lg bg-neutral-100 flex items-center justify-center overflow-hidden">
+                    <img
+                      src={buildStoreLogoUrl(s.storeId)}
+                      alt={`${s.name} 로고`}
+                      width={56}
+                      height={56}
+                      loading="lazy"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs text-rose-400">{s.category ?? "매장"}</div>
-                    <div className="text-[16px] font-medium truncate">{s.name}</div>
+                    <div className="text-xs text-rose-400">
+                      {s.category ?? "매장"}
+                    </div>
+                    <div className="text-[16px] font-medium truncate">
+                      {s.name}
+                    </div>
                     {s.div2Category && (
-                      <div className="text-xs text-neutral-500 truncate">{s.div2Category}</div>
+                      <div className="text-xs text-neutral-500 truncate">
+                        {s.div2Category}
+                      </div>
                     )}
                   </div>
                 </li>
