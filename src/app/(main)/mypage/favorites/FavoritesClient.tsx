@@ -99,6 +99,24 @@ function makeInitials(name: string): string {
   return trimmed.slice(0, 2);
 }
 
+// 즐겨찾기 아이템에서 로고 URL 얻기 (storeLogo 있으면 우선)
+type FavoriteWithLogo = FavoriteItem & { storeLogo?: string | null };
+
+function getFavoriteLogoUrl(item: FavoriteItem): string | undefined {
+  const withLogo = item as FavoriteWithLogo;
+
+  if (typeof withLogo.storeLogo === "string") {
+    const trimmed = withLogo.storeLogo.trim();
+    if (trimmed.length > 0) return trimmed;
+  }
+
+  if (typeof item.storeId === "number" && Number.isFinite(item.storeId)) {
+    return `https://api.parkruan.cc/api/stores/logo/${item.storeId}`;
+  }
+
+  return undefined;
+}
+
 type SuggestItem =
   | { kind: "category"; text: string; catId: CategoryKey }
   | { kind: "name"; text: string };
@@ -376,6 +394,7 @@ function FavoriteCard({
 }) {
   const router = useRouter();
   const initials = useMemo(() => makeInitials(item.placeName), [item.placeName]);
+  const logoUrl = useMemo(() => getFavoriteLogoUrl(item), [item]);
 
   const goDetail = useCallback(() => {
     const params = new URLSearchParams({
@@ -426,8 +445,17 @@ function FavoriteCard({
       </div>
 
       <div className="flex flex-col items-center text-center gap-3 pt-2 pb-1">
-        <div className="mx-auto h-24 w-24 rounded-full border border-gray-200 flex items-center justify-center text-xl font-semibold">
-          {initials}
+        <div className="mx-auto h-24 w-24 rounded-full border border-gray-200 flex items-center justify-center bg-white overflow-hidden">
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt={`${item.placeName} 로고`}
+              loading="lazy"
+              className="max-h-[70%] max-w-[70%] object-contain"
+            />
+          ) : (
+            <span className="text-xl font-semibold">{initials}</span>
+          )}
         </div>
         <div className="text-base font-medium leading-snug break-keep">
           {item.placeName}
