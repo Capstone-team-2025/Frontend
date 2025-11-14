@@ -18,20 +18,16 @@ const ALLOW_PREFIXES = [
 type AllowPath = (typeof ALLOW_PREFIXES)[number];
 
 function validatePath(path: string): path is AllowPath | `${AllowPath}/${string}` {
-  return (
-    path.startsWith("/") &&
-    ALLOW_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`))
-  );
+  return path.startsWith("/") &&
+    ALLOW_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));
 }
 
 function buildTargetUrl(req: NextRequest): string {
   const path = req.nextUrl.searchParams.get("path") ?? "/";
   const url = new URL(BASE + path);
-
   req.nextUrl.searchParams.forEach((v, k) => {
     if (k !== "path") url.searchParams.set(k, v);
   });
-
   return url.toString();
 }
 
@@ -49,11 +45,9 @@ function extractValidAuth(raw: string | null): string | null {
 function buildForwardHeaders(req: NextRequest, extra?: Record<string, string>): Headers {
   const h = new Headers();
 
-  // 클라이언트 Authorization이 "유효"할 때만 사용
   const validFromHeader = extractValidAuth(req.headers.get("authorization"));
   if (validFromHeader) h.set("authorization", validFromHeader);
 
-  // 없거나 무효면 쿠키(auth_token)로 대체
   if (!h.has("authorization")) {
     const tokenFromCookie = req.cookies.get("auth_token")?.value;
     if (tokenFromCookie && tokenFromCookie !== "undefined" && tokenFromCookie !== "null") {
@@ -64,10 +58,7 @@ function buildForwardHeaders(req: NextRequest, extra?: Record<string, string>): 
   const ct = req.headers.get("content-type");
   if (ct) h.set("content-type", ct);
 
-  if (extra) {
-    for (const [k, v] of Object.entries(extra)) h.set(k, v);
-  }
-
+  if (extra) for (const [k, v] of Object.entries(extra)) h.set(k, v);
   return h;
 }
 
@@ -88,13 +79,9 @@ async function forward(req: NextRequest, method: "GET" | "POST" | "DELETE") {
 
   const target = buildTargetUrl(req);
   const headers = buildForwardHeaders(req);
-
   const init: RequestInit = { method, headers, cache: "no-store" };
-  if (method === "POST") {
-    init.body = await req.text();
-  }
+  if (method === "POST") init.body = await req.text();
 
-  // ─── DEV 전용: 프록시→백엔드 Authorization 로그 (마스킹) ───
   if (process.env.NODE_ENV !== "production") {
     const masked = maskAuthorization(headers.get("authorization"));
     console.log("[proxy→backend]", method, target, "Authorization:", masked);
@@ -103,7 +90,11 @@ async function forward(req: NextRequest, method: "GET" | "POST" | "DELETE") {
   const res = await fetch(target, init);
   const text = await res.text();
 
-  // DEV 전용 디버그 헤더
+  // 여전히 401이면 프론트 전역 인터셉터가 처리하도록 신호
+  if (res.status === 401) {
+    return NextResponse.json({ needRelogin: true }, { status: 401 });
+  }
+
   const debugHeaders: Record<string, string> =
     process.env.NODE_ENV !== "production"
       ? {
@@ -132,7 +123,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: errorMessage(e) || "proxy error" }, { status: 500 });
   }
 }
-
 export async function POST(req: NextRequest) {
   try {
     return await forward(req, "POST");
@@ -140,7 +130,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: errorMessage(e) || "proxy error" }, { status: 500 });
   }
 }
-
 export async function DELETE(req: NextRequest) {
   try {
     return await forward(req, "DELETE");
