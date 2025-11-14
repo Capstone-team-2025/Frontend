@@ -31,7 +31,15 @@ export type NearbyByStoreResponse = {
   data: Place[];
 };
 
-export type CategoryKey = "cafe" | "CVS" | "food" | "movie" | "shoping" | "culture" | "hotel" | "life";
+export type CategoryKey =
+  | "cafe"
+  | "CVS"
+  | "food"
+  | "movie"
+  | "shoping"
+  | "culture"
+  | "hotel"
+  | "life";
 
 export type NearbyByCategoryResponse = {
   success: boolean;
@@ -41,6 +49,12 @@ export type NearbyByCategoryResponse = {
   data: Record<string, Place[]>;
 };
 
+export type FavoritePlacesResponse = {
+  success: boolean;
+  message: string;
+  data: Place[];
+};
+
 type FetchOpts = {
   signal?: AbortSignal;
   timeoutMs?: number;
@@ -48,7 +62,10 @@ type FetchOpts = {
 
 function withTimeout(signal: AbortSignal | undefined, timeoutMs: number) {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(new DOMException("Timeout", "AbortError")), timeoutMs);
+  const timer = setTimeout(
+    () => ctrl.abort(new DOMException("Timeout", "AbortError")),
+    timeoutMs
+  );
   if (signal) {
     signal.addEventListener(
       "abort",
@@ -63,8 +80,17 @@ function withTimeout(signal: AbortSignal | undefined, timeoutMs: number) {
   return { signal: ctrl.signal, done: () => clearTimeout(timer) };
 }
 
-async function proxyGet<T>(path: string, params: Record<string, string | number>, init?: RequestInit) {
-  const qs = new URLSearchParams({ path, ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])) });
+async function proxyGet<T>(
+  path: string,
+  params: Record<string, string | number>,
+  init?: RequestInit
+) {
+  const qs = new URLSearchParams({
+    path,
+    ...Object.fromEntries(
+      Object.entries(params).map(([k, v]) => [k, String(v)])
+    ),
+  });
   const token = await getAccessToken();
   const res = await fetch(`/api/proxy?${qs.toString()}`, {
     cache: "no-store",
@@ -97,7 +123,11 @@ export async function fetchNearbyByStore(
 ): Promise<NearbyByStoreResponse> {
   const { signal, done } = withTimeout(opts.signal, opts.timeoutMs ?? 10000);
   try {
-    return await proxyGet<NearbyByStoreResponse>("/api/places/nearby", { storeId, lat, lng }, { signal });
+    return await proxyGet<NearbyByStoreResponse>(
+      "/api/places/nearby",
+      { storeId, lat, lng },
+      { signal }
+    );
   } finally {
     done();
   }
@@ -111,7 +141,11 @@ export async function fetchNearbyAll(
 ): Promise<NearbyAllResponse> {
   const { signal, done } = withTimeout(opts.signal, opts.timeoutMs ?? 15000);
   try {
-    return await proxyGet<NearbyAllResponse>("/api/places/nearby/all", { lat, lng }, { signal });
+    return await proxyGet<NearbyAllResponse>(
+      "/api/places/nearby/all",
+      { lat, lng },
+      { signal }
+    );
   } finally {
     done();
   }
@@ -126,7 +160,29 @@ export async function fetchNearbyByCategory(
 ): Promise<NearbyByCategoryResponse> {
   const { signal, done } = withTimeout(opts.signal, opts.timeoutMs ?? 12000);
   try {
-    return await proxyGet<NearbyByCategoryResponse>("/api/places/nearby/category", { lat, lng, category }, { signal });
+    return await proxyGet<NearbyByCategoryResponse>(
+      "/api/places/nearby/category",
+      { lat, lng, category },
+      { signal }
+    );
+  } finally {
+    done();
+  }
+}
+
+// 사용자의 즐겨찾기 장소(현재 위치 기준) 조회
+export async function fetchFavoritePlacesNearby(
+  lat: number,
+  lng: number,
+  opts: FetchOpts = {}
+): Promise<FavoritePlacesResponse> {
+  const { signal, done } = withTimeout(opts.signal, opts.timeoutMs ?? 10000);
+  try {
+    return await proxyGet<FavoritePlacesResponse>(
+      "/api/places/favorites",
+      { lat, lng },
+      { signal }
+    );
   } finally {
     done();
   }
@@ -138,7 +194,13 @@ export async function fetchNearbyByCategoryFlat(
   lng: number,
   category: CategoryKey,
   opts: FetchOpts = {}
-): Promise<{ success: boolean; message: string; totalBrands: number; totalPlaces: number; data: Place[] }> {
+): Promise<{
+  success: boolean;
+  message: string;
+  totalBrands: number;
+  totalPlaces: number;
+  data: Place[];
+}> {
   const json = await fetchNearbyByCategory(lat, lng, category, opts);
 
   const flat: Place[] = [];
