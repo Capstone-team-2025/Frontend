@@ -21,6 +21,7 @@ import {
   removeFavorite,
   type FavoriteItem,
 } from "@/services/favorites";
+import ConfirmModal from "@/components/modal/ConfirmModal";
 
 type StoreLite = {
   storeId?: number;
@@ -90,7 +91,13 @@ export default function MapContainer({
           storeId: initialStoreId,
         }
         : null,
-    [initialSheetOpen, initialName, initialKeyword, initialCategory, initialStoreId]
+    [
+      initialSheetOpen,
+      initialName,
+      initialKeyword,
+      initialCategory,
+      initialStoreId,
+    ]
   );
 
   const [userPos, setUserPos] = useState<LatLng | null>(null);
@@ -116,6 +123,10 @@ export default function MapContainer({
   const [sheetMode, setSheetMode] = useState<"list" | "detail">(
     initialStoreId ? "list" : "detail"
   );
+
+  // 위치 권한 거부 안내 모달
+  const [locationPermissionDenied, setLocationPermissionDenied] =
+    useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -419,6 +430,7 @@ export default function MapContainer({
         myLocationBottomOffset={sheetVisiblePx}
         myLocationBaseBottomPx={100}
         myLocationDragging={sheetDragging}
+        onLocationPermissionDenied={() => setLocationPermissionDenied(true)}
       />
 
       <BottomSheet
@@ -437,7 +449,9 @@ export default function MapContainer({
           <PlaceDetailSheet
             place={selectedPlace}
             onBackToList={
-              (mode === "brand" || mode === "category" || mode === "favorites") &&
+              (mode === "brand" ||
+                mode === "category" ||
+                mode === "favorites") &&
                 (places?.length ?? 0) > 0
                 ? () => setSheetMode("list")
                 : undefined
@@ -459,7 +473,9 @@ export default function MapContainer({
                       ? CATEGORY_LABEL[selectedCategory]
                       : "주변 매장",
               category:
-                mode === "brand" ? initialCategory : selectedCategory ?? undefined,
+                mode === "brand"
+                  ? initialCategory
+                  : selectedCategory ?? undefined,
             }}
             places={places ?? []}
             selected={selectedPlace ?? undefined}
@@ -474,6 +490,32 @@ export default function MapContainer({
           </div>
         )}
       </BottomSheet>
+
+      <ConfirmModal
+        open={locationPermissionDenied}
+        title="위치 권한이 꺼져 있어요"
+        confirmText="확인"
+        confirmColor="black"
+        onConfirm={() => setLocationPermissionDenied(false)}
+        onClose={() => setLocationPermissionDenied(false)}
+      >
+        <p className="text-sm text-neutral-800 mt-2 whitespace-pre-line">
+          내위치 버튼을 사용하려면 위치 권한이 필요합니다.
+          {"\n\n"}
+          한 번 &quot;허용 안함&quot;을 선택하면 브라우저가 다시 묻지 않아서,{"\n"}
+          <a
+            href="https://mapnefit.vercel.app/map"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline text-blue-600 break-all"
+          >
+            https://mapnefit.vercel.app/map
+          </a>
+          에 접속하여 다시 앱을 설치해주셔야 합니다.
+        </p>
+        <ul className="mt-3 list-disc list-inside text-xs text-neutral-600">
+        </ul>
+      </ConfirmModal>
     </div>
   );
 }

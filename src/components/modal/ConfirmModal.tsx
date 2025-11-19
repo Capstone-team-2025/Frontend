@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 type ConfirmModalProps = {
   open: boolean;
   title: string;
@@ -8,6 +10,7 @@ type ConfirmModalProps = {
   confirmColor?: "pink" | "black";
   onConfirm: () => void;
   onClose: () => void;
+  children?: ReactNode;
 };
 
 export default function ConfirmModal({
@@ -18,6 +21,7 @@ export default function ConfirmModal({
   confirmColor = "pink",
   onConfirm,
   onClose,
+  children,
 }: ConfirmModalProps) {
   if (!open) return null;
 
@@ -36,6 +40,12 @@ export default function ConfirmModal({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-[19px] font-bold mb-3">{title}</h2>
+
+        {children && (
+          <div className="mb-4 text-[14px] text-neutral-700 text-left">
+            {children}
+          </div>
+        )}
 
         <div className="flex justify-center gap-3 text-[16px]">
           <button
