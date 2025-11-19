@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import axios from "axios";
 import Button from "@/components/button/SignUpButton";
+import cenkor from "cenkor";
 
 export default function EditProfileClient({
   initialNickname,
@@ -21,6 +22,10 @@ export default function EditProfileClient({
     e.preventDefault();
     if (!nickname.trim() || submitting) return;
     setSubmitting(true);
+    if (cenkor(nickname.trim())) {
+      alert("부적절한 단어가 포함되어 있어 닉네임을 변경할 수 없습니다.");
+      return;
+    }
 
     try {
       await axios.put(
