@@ -86,10 +86,10 @@ export default function MapContainer({
     () =>
       initialSheetOpen
         ? {
-            name: initialName || initialKeyword || "",
-            category: initialCategory,
-            storeId: initialStoreId,
-          }
+          name: initialName || initialKeyword || "",
+          category: initialCategory,
+          storeId: initialStoreId,
+        }
         : null,
     [
       initialSheetOpen,
@@ -147,7 +147,8 @@ export default function MapContainer({
         setSelectedPlace(null);
       } catch (e) {
         console.error(e);
-        if (alive) setPlaces([]);}
+        if (alive) setPlaces([]);
+      }
     })();
     return () => {
       alive = false;
@@ -162,7 +163,8 @@ export default function MapContainer({
         if (alive) setFavorites(data);
       } catch (e) {
         console.error("즐겨찾기 로드 실패", e);
-        if (alive) setFavorites([]);}
+        if (alive) setFavorites([]);
+      }
     })();
     return () => {
       alive = false;
@@ -450,7 +452,7 @@ export default function MapContainer({
               (mode === "brand" ||
                 mode === "category" ||
                 mode === "favorites") &&
-              (places?.length ?? 0) > 0
+                (places?.length ?? 0) > 0
                 ? () => setSheetMode("list")
                 : undefined
             }
@@ -466,10 +468,10 @@ export default function MapContainer({
                 mode === "brand"
                   ? selectedStore?.name || initialName || initialKeyword || ""
                   : mode === "favorites"
-                  ? "즐겨찾기"
-                  : selectedCategory
-                  ? CATEGORY_LABEL[selectedCategory]
-                  : "주변 매장",
+                    ? "즐겨찾기"
+                    : selectedCategory
+                      ? CATEGORY_LABEL[selectedCategory]
+                      : "주변 매장",
               category:
                 mode === "brand"
                   ? initialCategory
@@ -500,16 +502,18 @@ export default function MapContainer({
         <p className="text-sm text-neutral-800 mt-2 whitespace-pre-line">
           내위치 버튼을 사용하려면 위치 권한이 필요합니다.
           {"\n\n"}
-          한 번 &quot;허용 안함&quot;을 선택하면 브라우저가 다시 묻지 않아서,
-          설정에서 직접 권한을 다시 켜주셔야 합니다.
+          한 번 &quot;허용 안함&quot;을 선택하면 브라우저가 다시 묻지 않아서,{"\n"}
+          <a
+            href="https://mapnefit.vercel.app/map"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline text-blue-600 break-all"
+          >
+            https://mapnefit.vercel.app/map
+          </a>
+          에 접속하여 다시 앱을 설치해주셔야 합니다.
         </p>
         <ul className="mt-3 list-disc list-inside text-xs text-neutral-600">
-          <li>
-            <span className="font-semibold">앱으로 설치한 경우(PWA)</span>: 앱아이콘 꾹 누르기 &gt; 사이트 설정 &gt; 위치 권한 허용 또는 데이터 삭제 및 권한 재설정 선택
-          </li>
-          <li className="mt-1">
-            <span className="font-semibold">브라우저에서 사용하는 경우</span>: 사이트 권한 &gt; 위치 &gt; &quot;허용&quot; 선택
-          </li>
         </ul>
       </ConfirmModal>
     </div>
