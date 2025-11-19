@@ -7,6 +7,12 @@ import axios from "axios";
 import Button from "@/components/button/SignUpButton";
 import cenkor from "cenkor";
 
+type CenkorResult = {
+  filtered: boolean;
+  filters: string[];
+  input: string;
+};
+
 export default function EditProfileClient({
   initialNickname,
   initialProfileUrl,
@@ -20,17 +26,28 @@ export default function EditProfileClient({
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nickname.trim() || submitting) return;
-    setSubmitting(true);
-    if (cenkor(nickname.trim())) {
+    if (submitting) return;
+
+    const trimmed = nickname.trim();
+    if (!trimmed) return;
+
+    const result = cenkor(trimmed) as unknown as CenkorResult;
+    console.log("cenkor result =>", result);
+
+    const hasBadWord =
+      result.filtered || (result.filters?.length ?? 0) > 0;
+
+    if (hasBadWord) {
       alert("부적절한 단어가 포함되어 있어 닉네임을 변경할 수 없습니다.");
       return;
     }
 
+    setSubmitting(true);
+
     try {
       await axios.put(
         "/api/user/update",
-        { nickname: nickname.trim() },
+        { nickname: trimmed },
         { headers: { "Content-Type": "application/json" } }
       );
       router.replace("/mypage");
@@ -41,13 +58,15 @@ export default function EditProfileClient({
       setSubmitting(false);
     }
   };
+
   const isDisabled =
     submitting ||
     !nickname.trim() ||
     nickname.trim() === (initialNickname ?? "").trim();
+
   return (
     <section className="mx-auto w-full max-w-[425px] pb-24 bg-white">
-      <div className="relative h-50  bg-[#FB4E6F]">
+      <div className="relative h-50 bg-[#FB4E6F]">
         <div className="absolute left-1/2 bottom-0 translate-x-[-50%] translate-y-1/2">
           <div className="h-[120px] w-[120px] rounded-full bg-white p-1 shadow-md">
             <div className="relative h-full w-full overflow-hidden rounded-full bg-[#FF6F86]">
