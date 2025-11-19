@@ -65,8 +65,6 @@ npm run dev
 <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=TypeScript&logoColor=white">
 <img src="https://img.shields.io/badge/TailwindCSS-06B6D4?style=flat&logo=TailwindCSS&logoColor=white">
 <img src="https://img.shields.io/badge/Framer_Motion-0055FF?style=flat&logo=framer&logoColor=white">
-<img src="https://img.shields.io/badge/React_Query-FF4154?style=flat&logo=reactquery&logoColor=white">
-<img src="https://img.shields.io/badge/Zustand-000000?style=flat&logo=react&logoColor=white">
 <img src="https://img.shields.io/badge/Axios-5A29E4?style=flat&logo=axios&logoColor=white">
 <img src="https://img.shields.io/badge/Kakao_Map_API-FFCD00?style=flat&logo=kakaotalk&logoColor=000000">
 <img src="https://img.shields.io/badge/Kakao_Login-FFCD00?style=flat&logo=kakaotalk&logoColor=black">
