@@ -271,7 +271,7 @@ export default function KakaoMap({
           )}
         </>
       ) : (
-        <div>지도를 불러오는 중...</div>
+        <div></div>
       )}
     </div>
   );
