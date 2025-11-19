@@ -34,16 +34,13 @@ const LIKE_MARKER: MarkerImageDef = {
   options: { offset: ICON_OFFSET, alt: "즐겨찾기" },
 };
 
-// 분류 불명 시 기본값(원하면 변경)
 const DEFAULT_MARKER: MarkerImageDef = CATEGORY_MARKER.shoping;
 
-// 백엔드 확장 필드 대응용(타입 안전하게 확장)
 type PlaceExtended = Place & {
   categoryKey?: CategoryKey | null;
   categoryName?: "카페" | "편의점" | "식당" | "영화" | "쇼핑/소매" | "문화/엔터테인먼트" | "라이프" | "호텔/리조트" | null;
 };
 
-/** categoryName → CategoryKey 정확 매핑 */
 const CATEGORY_NAME_TO_KEY: Record<
   NonNullable<PlaceExtended["categoryName"]>,
   CategoryKey
@@ -58,7 +55,6 @@ const CATEGORY_NAME_TO_KEY: Record<
   "호텔/리조트": "hotel",
 };
 
-/** 최종 카테고리 결정: 서버 키 우선 → 정확 매핑 */
 function resolveCategoryKey(p: Place): CategoryKey | null {
   const ep = p as PlaceExtended;
   if (ep.categoryKey) return ep.categoryKey;
@@ -84,6 +80,9 @@ type KakaoMapInstance = {
 
 type MarkerMode = "normal" | "favorites";
 
+// 위치 권한 관련 에러 상태 타입
+type LocationPermissionError = "denied";
+
 type Props = {
   center: LatLng;
   height?: number | string;
@@ -98,6 +97,7 @@ type Props = {
   draggable?: boolean;
   markerMode?: MarkerMode;
   favoritePlaceIds?: ReadonlySet<string>;
+  onLocationPermissionDenied?: (reason: LocationPermissionError) => void;
 };
 
 export default function KakaoMap({
@@ -114,6 +114,7 @@ export default function KakaoMap({
   draggable = true,
   markerMode = "normal",
   favoritePlaceIds,
+  onLocationPermissionDenied,
 }: Props) {
   const [ready, setReady] = useState(false);
   const [userLocation, setUserLocation] = useState<LatLng | null>(null);
@@ -142,9 +143,9 @@ export default function KakaoMap({
 
     const id = navigator.geolocation.watchPosition(
       (pos) => {
-        const { latitude, longitude, accuracy } = pos.coords;
+        const { latitude, longitude, accuracy: rawAccuracy } = pos.coords;
         setUserLocation({ lat: latitude, lng: longitude });
-        setAccuracy(Math.round(accuracy));
+        setAccuracy(Math.round(rawAccuracy));
       },
       () => {
         setUserLocation(null);
@@ -155,13 +156,13 @@ export default function KakaoMap({
 
     watchIdRef.current = id;
     return () => {
-      const geo = typeof navigator !== "undefined" ? navigator.geolocation : undefined;
+      const geo =
+        typeof navigator !== "undefined" ? navigator.geolocation : undefined;
       const wid = watchIdRef.current;
       if (wid !== null && geo && typeof geo.clearWatch === "function") {
         geo.clearWatch(wid);
       }
       watchIdRef.current = null;
-
     };
   }, [ready]);
 
@@ -192,7 +193,39 @@ export default function KakaoMap({
     }
   };
 
-  const bottomPx = (myLocationBottomOffset > 0 ? myLocationBottomOffset : myLocationBaseBottomPx) + 8;
+  // 내 위치 버튼 클릭 시: 권한이 아예 거부된 상태면 부모에게 알리고, 아니면 기존 동작(recenter) 수행
+  const handleMyLocationClick = async () => {
+    if (typeof navigator !== "undefined" && "permissions" in navigator) {
+      try {
+        const navWithPermissions = navigator as Navigator & {
+          permissions: {
+            query: (
+              descriptor:
+                | PermissionDescriptor
+                | { name: "geolocation" }
+            ) => Promise<PermissionStatus>;
+          };
+        };
+
+        const status = await navWithPermissions.permissions.query({
+          name: "geolocation",
+        });
+
+        if (status.state === "denied") {
+          onLocationPermissionDenied?.("denied");
+          return;
+        }
+      } catch {
+      }
+    }
+
+    recenterToUser();
+  };
+
+  const bottomPx =
+    (myLocationBottomOffset > 0
+      ? myLocationBottomOffset
+      : myLocationBaseBottomPx) + 8;
 
   return (
     <div className="relative" style={{ width: "100%", height }}>
@@ -248,8 +281,8 @@ export default function KakaoMap({
                 markerMode === "favorites" || isFavorite
                   ? LIKE_MARKER
                   : key
-                    ? CATEGORY_MARKER[key]
-                    : DEFAULT_MARKER;
+                  ? CATEGORY_MARKER[key]
+                  : DEFAULT_MARKER;
 
               return (
                 <MapMarker
@@ -264,7 +297,7 @@ export default function KakaoMap({
 
           {showMyLocationButton && (
             <MyLocationButton
-              onClick={recenterToUser}
+              onClick={handleMyLocationClick}
               bottomPx={bottomPx}
               dragging={myLocationDragging}
             />
