@@ -96,7 +96,7 @@ export default function MypageClient({ user }: { user: User }) {
           <div className="flex flex-col">
             <div className="font-bold">{user.nickname}</div>
             <span
-              className={`mt-1 inline-block rounded-full px-3 py-1 text-[13px] font-bold ${badgeClass}`}>
+              className={`mt-1 w-fit inline-block rounded-full px-3 py-1 text-[13px] font-bold ${badgeClass}`}>
               {user.grade}
             </span>
           </div>
